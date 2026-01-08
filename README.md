@@ -14,8 +14,9 @@ When Cloudflare DLP captures sensitive data, it creates forensic copies stored a
 ## Features
 
 - **Automatic Detection**: Intelligently detects content type and encoding from headers
-- **Gzip Support**: Handles both plain and gzip-compressed payloads
+- **Gzip Support**: Handles both plain and gzip-compressed payloads; gzipped payloads are first gunzipped then processed
 - **JSON Formatting**: Pretty-prints all JSON output for easy reading
+- **Plain-text Support**: Decodes `text/plain` payloads and writes a `.txt` output
 - **Interactive Mode**: Prompts to attempt JSON decoding for unsupported content types
 - **Force Decode**: Optional `--try-json` flag to attempt decoding regardless of content type
 
@@ -35,7 +36,7 @@ brew install jq
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/cloudflare-dlp-forensic-copy-decoder.git
+git clone https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder.git
 cd cloudflare-dlp-forensic-copy-decoder
 ```
 
@@ -72,33 +73,45 @@ sudo ln -s "$(pwd)/cf-dlp-decode.sh" /usr/local/bin/cf-dlp-decode
 
 This will produce:
 - `captured-data.log.json` - The decompressed and formatted log file
-- `captured-data.json` - The extracted and decoded payload
+- `captured-data.json` - The extracted and decoded payload (for JSON payloads)
 
-**Example 2: Force JSON decoding for non-JSON content types**
+**Example 2: Decode a plain-text payload**
+```bash
+./cf-dlp-decode.sh upload.log.gz
+```
+If the payload `content-type` is `text/plain`, the script will produce:
+- `upload.log.json` - The decompressed and formatted log file
+- `upload.txt` - The decoded plain text payload
+
+**Example 3: Force JSON decoding for non-JSON content types**
 ```bash
 ./cf-dlp-decode.sh --try-json suspicious-upload.log.gz
 ```
 
-**Example 3: View help**
+**Example 4: View help**
 ```bash
 ./cf-dlp-decode.sh --help
 ```
 
 ## How It Works
 
-1. **Decompression**: Extracts the `.log.gz` file to `.log.json`
-2. **Formatting**: Pretty-prints the JSON structure using `jq`
-3. **Header Analysis**: Reads `content-type` and `content-encoding` headers
-4. **Payload Decoding**: 
-   - Base64 decodes the `.Payload` field
-   - If `content-encoding: gzip`, applies gzip decompression
-   - Formats the final JSON output
-5. **Output**: Writes the decoded payload to a separate file
+1. **Decompression**: Extracts the `.log.gz` file to `.log.json`.
+2. **Formatting**: Pretty-prints the JSON structure using `jq`.
+3. **Header Analysis**: Reads `content-type` and `content-encoding` headers.
+4. **Payload Decoding**:
+   - Base64 decodes the `.Payload` field (uses temp files to handle large payloads).
+   - If `content-encoding: gzip`, the decoded bytes are gunzipped first.
+   - If `content-type` indicates JSON, the final unzipped/decoded bytes are piped to `jq` and written as `.json`.
+   - If `content-type` indicates plain text, the final unzipped/decoded bytes are written as `.txt`.
+5. **Output**: Writes the decoded payload to a separate file and cleans up temporary files.
+
+> Note: gzipped payloads may contain gzipped JSON or other formats. The script first gunzips and then attempts to process the result according to the detected content-type (or according to `--try-json` / interactive prompt).
 
 ### Supported Content Types
 
 The tool automatically decodes payloads with:
 - `content-type: application/json*` (any JSON content type)
+- `content-type: text/plain*` (plain text -> `.txt`)
 - `content-encoding: gzip` (with automatic gzip decompression)
 
 For other content types, use `--try-json` to attempt decoding, or respond to the interactive prompt.
@@ -110,7 +123,8 @@ Given an input file `example.log.gz`, the tool produces:
 | File | Description |
 |------|-------------|
 | `example.log.json` | Decompressed and formatted log with headers and metadata |
-| `example.json` | Extracted and decoded payload (the actual captured data) |
+| `example.json` | Extracted and decoded payload when payload is JSON |
+| `example.txt` | Extracted and decoded payload when payload is plain text |
 
 ## Error Handling
 
@@ -120,6 +134,8 @@ The script will fail with descriptive error messages if:
 - The payload isn't valid base64
 - JSON decoding fails
 - Gzip decompression fails
+
+Temporary files used during decode are removed on success and on many failure paths; the script attempts to leave no leftover temp files.
 
 ## Options
 
@@ -134,7 +150,6 @@ When the content type is not `application/json` and `--try-json` is not specifie
 ```
 Try JSON decode anyway? [y/N]
 ```
-
 Respond with `y` or `yes` to attempt decoding.
 
 ## Contributing
