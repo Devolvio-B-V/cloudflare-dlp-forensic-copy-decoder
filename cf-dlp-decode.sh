@@ -16,8 +16,8 @@ What it does:
   4) Optionally: with --try-json, attempts JSON decode even when content-type is not supported
 
 Outputs:
-  <input.log.json>    (pretty-printed)
-  <input.json>        (decoded payload; name may differ if non-json)
+  <input.log.json>     (pretty-printed)
+  <input.payload.json> (decoded payload; name may differ if non-json)
 USAGE
 }
 
@@ -66,8 +66,8 @@ in="$1"
 # ---- derive filenames ----
 base="${in%.log.gz}"
 log_json="${base}.log.json"
-payload_out="${base}.json"
-payload_txt="${base}.txt"
+payload_out="${base}.payload.json"
+payload_txt="${base}.payload.txt"
 payload_b64_tmp=""
 payload_bin_tmp=""
 payload_unzipped_tmp=""
