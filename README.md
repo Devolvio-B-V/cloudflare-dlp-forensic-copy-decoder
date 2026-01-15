@@ -16,9 +16,8 @@ When Cloudflare DLP captures sensitive data, it creates forensic copies stored a
 - **Automatic Detection**: Intelligently detects content type and encoding from headers
 - **Gzip Support**: Handles both plain and gzip-compressed payloads; gzipped payloads are first gunzipped then processed
 - **JSON Formatting**: Pretty-prints all JSON output for easy reading
-- **Plain-text Support**: Decodes `text/plain` payloads and writes a `.txt` output
-- **Interactive Mode**: Prompts to attempt JSON decoding for unsupported content types
-- **Force Decode**: Optional `--try-json` flag to attempt decoding regardless of content type
+- **Interactive Mode**: Prompts to attempt text decoding for unsupported content types
+- **Force Decode**: Optional `--try-text` flag to attempt decoding regardless of content type
 
 ## Prerequisites
 
@@ -61,7 +60,7 @@ sudo ln -s "$(pwd)/cf-dlp-decode.sh" /usr/local/bin/cf-dlp-decode
 ### With Force JSON Decode
 
 ```bash
-./cf-dlp-decode.sh --try-json <input.log.gz>
+./cf-dlp-decode.sh --try-text <input.log.gz>
 ```
 
 ### Examples
@@ -83,9 +82,9 @@ If the payload `content-type` is `text/plain`, the script will produce:
 - `upload.log.json` - The decompressed and formatted log file
 - `upload.payload.txt` - The decoded plain text payload
 
-**Example 3: Force JSON decoding for non-JSON content types**
+**Example 3: Force text decoding for non-supported content types**
 ```bash
-./cf-dlp-decode.sh --try-json suspicious-upload.log.gz
+./cf-dlp-decode.sh --try-text suspicious-upload.log.gz
 ```
 
 **Example 4: View help**
@@ -103,18 +102,20 @@ If the payload `content-type` is `text/plain`, the script will produce:
    - If `content-encoding: gzip`, the decoded bytes are gunzipped first.
    - If `content-type` indicates JSON, the final unzipped/decoded bytes are piped to `jq` and written as `.payload.json`.
    - If `content-type` indicates plain text, the final unzipped/decoded bytes are written as `.payload.txt`.
+   - If `content-type` indicates form-data, the final unzipped/decoded bytes are written as `.payload.txt`.
 5. **Output**: Writes the decoded payload to a separate file and cleans up temporary files.
 
-> Note: gzipped payloads may contain gzipped JSON or other formats. The script first gunzips and then attempts to process the result according to the detected content-type (or according to `--try-json` / interactive prompt).
+> Note: gzipped payloads may contain gzipped JSON or other formats. The script first gunzips and then attempts to process the result according to the detected content-type (or according to `--try-text` / interactive prompt).
 
 ### Supported Content Types
 
 The tool automatically decodes payloads with:
 - `content-type: application/json*` (any JSON content type)
 - `content-type: text/plain*` (plain text -> `.txt`)
+- `content-type: multipart/form-data*` (form data -> `.txt`)
 - `content-encoding: gzip` (with automatic gzip decompression)
 
-For other content types, use `--try-json` to attempt decoding, or respond to the interactive prompt.
+For other content types, use `--try-text` to attempt decoding, or respond to the interactive prompt.
 
 ## Output Files
 
@@ -141,14 +142,14 @@ Temporary files used during decode are removed on success and on many failure pa
 
 | Option | Description |
 |--------|-------------|
-| `--try-json` | Attempt JSON decoding even if content-type is not application/json |
+| `--try-text` | Attempt text decoding even if content-type is not text/plain |
 | `-h, --help` | Display usage information |
 
 ## Interactive Mode
 
-When the content type is not `application/json` and `--try-json` is not specified, the tool will prompt:
+When the content type is not `text/plain` and `--try-text` is not specified, the tool will prompt:
 ```
-Try JSON decode anyway? [y/N]
+Try text decode anyway? [y/N]
 ```
 Respond with `y` or `yes` to attempt decoding.
 
