@@ -4,16 +4,17 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  cf-dlp-decode.sh [--try-json] <input.log.gz>
+  cf-dlp-decode.sh [--try-text] <input.log.gz>
 
 What it does:
   1) Decompresses <input.log.gz> -> <input.log.json>
   2) Pretty-prints <input.log.json> (jq)
   3) Decodes .Payload based on:
-       - .Headers.content-type starts with "application/json" => base64 -> JSON
-       - .Headers.content-encoding equals "gzip"              => base64 -> gzip -> JSON (or other format)
-       - .Headers.content-type starts with "text/plain"       => base64 -> plain text
-  4) Optionally: with --try-json, attempts JSON decode even when content-type is not supported
+       - .Headers.content-type starts with "application/json"    => base64 -> JSON
+       - .Headers.content-encoding equals "gzip"                 => base64 -> gzip -> JSON (or other format)
+       - .Headers.content-type starts with "text/plain"          => base64 -> plain text
+       - .Headers.content-type starts with "multipart/form-data" => base64 -> plain text
+  4) Optionally: with --try-text, attempts text decode even when content-type is not supported
 
 Outputs:
   <input.log.json>     (pretty-printed)
@@ -33,11 +34,11 @@ need jq
 need base64
 
 # ---- args ----
-try_json=0
+try_text=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --try-json)
-      try_json=1
+    --try-text)
+      try_text=1
       shift
       ;;
     -h|--help)
@@ -198,11 +199,13 @@ if [[ "$content_type" == application/json* ]]; then
   decode_json_payload 1
 elif [[ "$content_type" == text/plain* ]]; then
   decode_text_payload 1
-elif [[ "$try_json" -eq 1 ]]; then
-  if ! decode_json_payload 0; then
+elif [[ "$content_type" == multipart/form-data* ]]; then
+  decode_text_payload 1
+elif [[ "$try_text" -eq 1 ]]; then
+  if ! decode_text_payload 0; then
     echo "Wrote:"
     echo "  $log_json"
-    echo "Tried payload decode (--try-json) but it failed; leaving payload undecoded." >&2
+    echo "Tried payload decode (--try-text) but it failed; leaving payload undecoded." >&2
   fi
 else
   echo "Wrote:"
@@ -210,10 +213,10 @@ else
   echo "Skipped payload decode: .Headers.content-type is not supported (got: ${content_type:-<empty>})" >&2
   if [[ -t 0 ]]; then
     reply=""
-    if read -r -p "Try JSON decode anyway? [y/N] " reply; then
+    if read -r -p "Try text decode anyway? [y/N] " reply; then
       case "$reply" in
         y|Y|yes|YES)
-          if ! decode_json_payload 0; then
+          if ! decode_text_payload 0; then
             echo "Tried payload decode (prompt) but it failed; leaving payload undecoded." >&2
           fi
           ;;
@@ -221,3 +224,4 @@ else
     fi
   fi
 fi
+
