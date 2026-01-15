@@ -73,7 +73,7 @@ sudo ln -s "$(pwd)/cf-dlp-decode.sh" /usr/local/bin/cf-dlp-decode
 
 This will produce:
 - `captured-data.log.json` - The decompressed and formatted log file
-- `captured-data.json` - The extracted and decoded payload (for JSON payloads)
+- `captured-data.payload.json` - The extracted and decoded payload (for JSON payloads)
 
 **Example 2: Decode a plain-text payload**
 ```bash
@@ -81,7 +81,7 @@ This will produce:
 ```
 If the payload `content-type` is `text/plain`, the script will produce:
 - `upload.log.json` - The decompressed and formatted log file
-- `upload.txt` - The decoded plain text payload
+- `upload.payload.txt` - The decoded plain text payload
 
 **Example 3: Force JSON decoding for non-JSON content types**
 ```bash
@@ -101,8 +101,8 @@ If the payload `content-type` is `text/plain`, the script will produce:
 4. **Payload Decoding**:
    - Base64 decodes the `.Payload` field (uses temp files to handle large payloads).
    - If `content-encoding: gzip`, the decoded bytes are gunzipped first.
-   - If `content-type` indicates JSON, the final unzipped/decoded bytes are piped to `jq` and written as `.json`.
-   - If `content-type` indicates plain text, the final unzipped/decoded bytes are written as `.txt`.
+   - If `content-type` indicates JSON, the final unzipped/decoded bytes are piped to `jq` and written as `.payload.json`.
+   - If `content-type` indicates plain text, the final unzipped/decoded bytes are written as `.payload.txt`.
 5. **Output**: Writes the decoded payload to a separate file and cleans up temporary files.
 
 > Note: gzipped payloads may contain gzipped JSON or other formats. The script first gunzips and then attempts to process the result according to the detected content-type (or according to `--try-json` / interactive prompt).
@@ -123,8 +123,8 @@ Given an input file `example.log.gz`, the tool produces:
 | File | Description |
 |------|-------------|
 | `example.log.json` | Decompressed and formatted log with headers and metadata |
-| `example.json` | Extracted and decoded payload when payload is JSON |
-| `example.txt` | Extracted and decoded payload when payload is plain text |
+| `example.payload.json` | Extracted and decoded payload when payload is JSON |
+| `example.payload.txt` | Extracted and decoded payload when payload is plain text |
 
 ## Error Handling
 
