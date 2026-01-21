@@ -45,20 +45,54 @@ When you create a release tag (e.g., `v2.0.0`):
 
 ## 2. Winget Setup (Windows)
 
-Winget requires manual or semi-automated submission to the official Microsoft repository.
+Winget publishing is **fully automated** via GitHub Actions. The workflow automatically creates PRs to microsoft/winget-pkgs on each release.
 
-### Option A: Semi-Automated with wingetcreate (Recommended)
+### One-Time Setup
 
-1. **Install wingetcreate** (one-time)
+1. **Fork the winget-pkgs repository**
+   - Go to https://github.com/microsoft/winget-pkgs
+   - Click "Fork" in the top-right corner
+   - This creates a fork at: `https://github.com/YOUR_USERNAME/winget-pkgs`
+
+2. **Generate a Personal Access Token (PAT)**
+   - Go to https://github.com/settings/tokens/new
+   - Token name: `Winget Publishing`
+   - Expiration: No expiration (or choose your preference)
+   - Select scopes:
+     - ✅ `repo` (Full control of private repositories)
+     - ✅ `public_repo` (Access public repositories)
+   - Click "Generate token"
+   - **Important**: Copy the token immediately
+
+3. **Add the token as a repository secret**
+   - Go to https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/settings/secrets/actions
+   - Click "New repository secret"
+   - Name: `WINGET_GITHUB_TOKEN`
+   - Value: Paste the token from step 2
+   - Click "Add secret"
+
+### How It Works
+
+When you create a release tag (e.g., `v2.0.0`):
+1. GitHub Actions triggers the release workflow
+2. GoReleaser builds and publishes the binaries
+3. The `publish-winget` job automatically:
+   - Downloads wingetcreate
+   - Creates/updates the Winget manifest for both x64 and arm64 architectures
+   - Submits a PR to microsoft/winget-pkgs via your fork
+4. Microsoft reviews the PR (typically 1-3 business days)
+5. Once merged, users can install with: `winget install Devolvio-B-V.cf-dlp-decode`
+
+### Manual Submission (Fallback)
+
+If the automated workflow fails, you can manually submit:
+
+1. **Install wingetcreate**
    ```powershell
    winget install wingetcreate
    ```
 
-2. **Fork the winget-pkgs repository** (one-time)
-   - Go to https://github.com/microsoft/winget-pkgs
-   - Click "Fork" in the top-right corner
-
-3. **For each release**, run:
+2. **For each release**, run:
    ```powershell
    # Replace VERSION with your release version (e.g., 2.0.0)
    $VERSION = "2.0.0"
@@ -66,34 +100,15 @@ Winget requires manual or semi-automated submission to the official Microsoft re
    # Generate manifest and submit PR
    wingetcreate update Devolvio-B-V.cf-dlp-decode `
      --version $VERSION `
-     --urls "https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/download/v$VERSION/cf-dlp-decode-windows-amd64.exe" `
+     --urls "https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/download/v$VERSION/cf-dlp-decode-windows-amd64.exe|x64" `
+            "https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/download/v$VERSION/cf-dlp-decode-windows-arm64.exe|arm64" `
+     --token YOUR_GITHUB_TOKEN `
      --submit
    ```
 
-4. **Wait for Microsoft review**
+3. **Wait for Microsoft review**
    - Microsoft team reviews the PR (typically 1-3 business days)
    - They may request changes or automatically merge
-   - Once merged, users can install with: `winget install Devolvio-B-V.cf-dlp-decode`
-
-### Option B: Fully Manual Submission
-
-1. **Create manifest files**
-   - Clone your fork of https://github.com/microsoft/winget-pkgs
-   - Create manifests in `manifests/d/Devolvio-B-V/cf-dlp-decode/<version>/`
-   - Required files:
-     - `Devolvio-B-V.cf-dlp-decode.installer.yaml`
-     - `Devolvio-B-V.cf-dlp-decode.locale.en-US.yaml`
-     - `Devolvio-B-V.cf-dlp-decode.yaml`
-   - See https://github.com/microsoft/winget-pkgs/blob/master/AUTHORING_MANIFESTS.md
-
-2. **Submit Pull Request**
-   - Commit and push to your fork
-   - Open a PR to microsoft/winget-pkgs
-   - Wait for review and merge
-
-### Option C: Automated Workflow (Future Enhancement)
-
-We can add a GitHub Actions workflow to automatically create the wingetcreate PR. Let me know if you'd like this added.
 
 ## Verification
 
@@ -108,9 +123,11 @@ After setting up:
 2. **Check GitHub Actions**
    - Go to https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/actions
    - Verify the "Release" workflow runs successfully
+   - Check that all jobs complete: `release`, `publish-brew`, and `publish-winget`
 
 3. **Verify package manager repositories**
    - Homebrew: Check https://github.com/Devolvio-B-V/homebrew-tap for the new formula
+   - Winget: Check your microsoft/winget-pkgs fork for a new branch and PR
 
 ## Troubleshooting
 
@@ -123,10 +140,17 @@ After setting up:
 - Ensure the repository exists and is public
 - Verify the repository name matches exactly: `homebrew-tap`
 
-### Winget: PR rejected
+### Winget: PR submission failed
+- Verify `WINGET_GITHUB_TOKEN` is set correctly in repository secrets
+- Ensure your fork of microsoft/winget-pkgs exists
+- Check that the token has `repo` and `public_repo` scopes
+- Verify release artifacts are accessible (URLs return 200 OK)
+
+### Winget: PR rejected by Microsoft
 - Ensure all required manifest files are present
 - Verify URLs are correct and accessible
 - Check that version numbers match across all files
+- Review Microsoft's feedback on the PR
 
 ## Additional Resources
 
