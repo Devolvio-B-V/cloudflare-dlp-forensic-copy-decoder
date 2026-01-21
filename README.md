@@ -1,166 +1,258 @@
 # Cloudflare DLP Forensic Copy Decoder
 
-A handy command-line tool that decodes and extracts Cloudflare DLP (Data Loss Prevention) forensic copies from compressed log files.
+[![CI](https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/actions/workflows/ci.yml/badge.svg)](https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/actions)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder)](https://goreportcard.com/report/github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder)
 
-## Overview
+A powerful command-line tool and interactive TUI for decoding and extracting Cloudflare DLP (Data Loss Prevention) forensic copies from compressed log files.
 
-When Cloudflare DLP captures sensitive data, it creates forensic copies stored as compressed, base64-encoded JSON payloads. This tool automates the process of:
-- Decompressing the log file
-- Pretty-printing the JSON structure
-- Decoding the base64-encoded payload
-- Handling gzip-compressed payloads
-- Extracting the original data in a human-readable format
+## ✨ Features
 
-## Features
+- 🚀 **Native Go Implementation**: Single binary with no external dependencies
+- 🎨 **Interactive TUI**: Terminal user interface built with [bubbletea](https://github.com/charmbracelet/bubbletea)
+- 📦 **Cross-Platform**: Pre-built binaries for Linux, macOS, and Windows (amd64 & arm64)
+- 🔄 **Full Feature Parity**: 100% compatible with the original shell script
+- ✅ **Well Tested**: Comprehensive unit tests with high coverage
+- 🎯 **Easy to Use**: Simple CLI for scripting and automation
 
-- **Automatic Detection**: Intelligently detects content type and encoding from headers
-- **Gzip Support**: Handles both plain and gzip-compressed payloads; gzipped payloads are first gunzipped then processed
-- **JSON Formatting**: Pretty-prints all JSON output for easy reading
-- **Interactive Mode**: Prompts to attempt text decoding for unsupported content types
-- **Force Decode**: Optional `--try-text` flag to attempt decoding regardless of content type
+### What It Does
 
-## Prerequisites
+When Cloudflare DLP captures sensitive data, it creates forensic copies stored as compressed, base64-encoded JSON payloads. This tool automates:
 
-The following tools must be installed and available in your PATH:
-- `gzip` - for decompression
-- `jq` - for JSON parsing and formatting
-- `base64` - for base64 decoding
+1. **Decompression**: Extracts the `.log.gz` file
+2. **JSON Formatting**: Pretty-prints the log structure
+3. **Payload Decoding**: Base64 decodes the payload
+4. **Gzip Handling**: Automatically decompresses gzipped payloads
+5. **Smart Detection**: Intelligently detects and processes content based on headers
 
-Most Linux/Unix systems have these pre-installed. On macOS, you may need to install `jq`:
+## 📦 Installation
+
+### Download Pre-built Binaries
+
+Download the latest release for your platform from the [Releases page](https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases):
+
 ```bash
-brew install jq
+# Linux (amd64)
+curl -L -o decoder https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/latest/download/decoder-linux-amd64
+chmod +x decoder
+sudo mv decoder /usr/local/bin/
+
+# macOS (arm64)
+curl -L -o decoder https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/latest/download/decoder-darwin-arm64
+chmod +x decoder
+sudo mv decoder /usr/local/bin/
+
+# Windows (amd64)
+# Download decoder-windows-amd64.exe and add to PATH
 ```
 
-## Installation
+### Build from Source
 
-1. Clone this repository:
+Requirements:
+- Go 1.21 or higher
+
 ```bash
 git clone https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder.git
 cd cloudflare-dlp-forensic-copy-decoder
+make build
+
+# Or install directly
+go install github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/cmd/decoder@latest
 ```
 
-2. Make the script executable:
-```bash
-chmod +x cf-dlp-decode.sh
-```
+## 🚀 Usage
 
-3. Optionally, add to your PATH or create a symlink:
-```bash
-sudo ln -s "$(pwd)/cf-dlp-decode.sh" /usr/local/bin/cf-dlp-decode
-```
+### Interactive TUI Mode
 
-## Usage
-
-### Basic Usage
+Launch the terminal user interface for an interactive experience:
 
 ```bash
-./cf-dlp-decode.sh <input.log.gz>
+decoder --tui captured-data.log.gz
 ```
 
-### With Force JSON Decode
+**TUI Features:**
+- Visual preview of decoded content
+- Easy file navigation
+- Export decoded payloads
+- Toggle between formatted and raw views
+- Keyboard shortcuts for all operations
+
+**Keyboard Controls:**
+- `Enter` - Decode file
+- `s/e` - Save/Export decoded payload
+- `r` - Toggle raw/formatted view
+- `o` - Open new file
+- `q` - Quit
+
+### Non-Interactive CLI Mode
+
+Perfect for scripts and automation:
 
 ```bash
-./cf-dlp-decode.sh --try-text <input.log.gz>
+# Basic usage
+decoder captured-data.log.gz
+
+# With custom output path
+decoder --input captured-data.log.gz --output decoded.json
+
+# Force text decoding for unsupported content types
+decoder --try-text suspicious-upload.log.gz
+
+# Read from stdin
+cat captured-data.log.gz | decoder --input -
+
+# Verbose output
+decoder --verbose captured-data.log.gz
+
+# Overwrite existing files
+decoder --overwrite captured-data.log.gz
 ```
 
-### Examples
+## 📝 Command-Line Options
 
-**Example 1: Decode a standard DLP forensic copy**
-```bash
-./cf-dlp-decode.sh captured-data.log.gz
-```
+| Option | Description |
+|--------|-------------|
+| `--input PATH` | Input .log.gz file (or - for stdin) |
+| `--output PATH` | Output file path (auto-generated if not specified) |
+| `--tui` | Launch interactive TUI mode |
+| `--try-text` | Attempt text decoding even if content-type is unsupported |
+| `--overwrite` | Overwrite output files if they exist |
+| `--verbose` | Enable verbose output with detailed error messages |
+| `--help` | Display help information |
+| `--version` | Show version information |
 
-This will produce:
-- `captured-data.log.json` - The decompressed and formatted log file
-- `captured-data.payload.json` - The extracted and decoded payload (for JSON payloads)
-
-**Example 2: Decode a plain-text payload**
-```bash
-./cf-dlp-decode.sh upload.log.gz
-```
-If the payload `content-type` is `text/plain`, the script will produce:
-- `upload.log.json` - The decompressed and formatted log file
-- `upload.payload.txt` - The decoded plain text payload
-
-**Example 3: Force text decoding for non-supported content types**
-```bash
-./cf-dlp-decode.sh --try-text suspicious-upload.log.gz
-```
-
-**Example 4: View help**
-```bash
-./cf-dlp-decode.sh --help
-```
-
-## How It Works
-
-1. **Decompression**: Extracts the `.log.gz` file to `.log.json`.
-2. **Formatting**: Pretty-prints the JSON structure using `jq`.
-3. **Header Analysis**: Reads `content-type` and `content-encoding` headers.
-4. **Payload Decoding**:
-   - Base64 decodes the `.Payload` field (uses temp files to handle large payloads).
-   - If `content-encoding: gzip`, the decoded bytes are gunzipped first.
-   - If `content-type` indicates JSON, the final unzipped/decoded bytes are piped to `jq` and written as `.payload.json`.
-   - If `content-type` indicates plain text, the final unzipped/decoded bytes are written as `.payload.txt`.
-   - If `content-type` indicates form-data, the final unzipped/decoded bytes are written as `.payload.txt`.
-5. **Output**: Writes the decoded payload to a separate file and cleans up temporary files.
-
-> Note: gzipped payloads may contain gzipped JSON or other formats. The script first gunzips and then attempts to process the result according to the detected content-type (or according to `--try-text` / interactive prompt).
-
-### Supported Content Types
-
-The tool automatically decodes payloads with:
-- `content-type: application/json*` (any JSON content type)
-- `content-type: text/plain*` (plain text -> `.txt`)
-- `content-type: multipart/form-data*` (form data -> `.txt`)
-- `content-encoding: gzip` (with automatic gzip decompression)
-
-For other content types, use `--try-text` to attempt decoding, or respond to the interactive prompt.
-
-## Output Files
+## 📂 Output Files
 
 Given an input file `example.log.gz`, the tool produces:
 
 | File | Description |
 |------|-------------|
 | `example.log.json` | Decompressed and formatted log with headers and metadata |
-| `example.payload.json` | Extracted and decoded payload when payload is JSON |
-| `example.payload.txt` | Extracted and decoded payload when payload is plain text |
+| `example.payload.json` | Decoded payload (for JSON content types) |
+| `example.payload.txt` | Decoded payload (for text/form-data content types) |
 
-## Error Handling
+## 🔍 Supported Content Types
 
-The script will fail with descriptive error messages if:
-- The input file doesn't exist or doesn't end with `.log.gz`
-- Required dependencies are missing
-- The payload isn't valid base64
-- JSON decoding fails
-- Gzip decompression fails
+The tool automatically handles:
 
-Temporary files used during decode are removed on success and on many failure paths; the script attempts to leave no leftover temp files.
+- **JSON**: `application/json*` → `.payload.json`
+- **Plain Text**: `text/plain*` → `.payload.txt`
+- **Form Data**: `multipart/form-data*` → `.payload.txt`
+- **Gzipped**: `content-encoding: gzip` (automatic decompression)
 
-## Options
+For other content types, use `--try-text` to force text decoding.
 
-| Option | Description |
-|--------|-------------|
-| `--try-text` | Attempt text decoding even if content-type is not text/plain |
-| `-h, --help` | Display usage information |
+## 🛠️ Development
 
-## Interactive Mode
+### Building
 
-When the content type is not `text/plain` and `--try-text` is not specified, the tool will prompt:
+```bash
+# Build for current platform
+make build
+
+# Run tests
+make test
+
+# Run tests with coverage
+make test-coverage
+
+# Format code
+make fmt
+
+# Run linter
+make vet
+
+# Cross-compile for all platforms
+make cross-build
+
+# Clean build artifacts
+make clean
 ```
-Try text decode anyway? [y/N]
+
+### Running Tests
+
+```bash
+# Run all tests
+go test ./...
+
+# Run with coverage
+go test -cover ./...
+
+# Run with race detector
+go test -race ./...
 ```
-Respond with `y` or `yes` to attempt decoding.
 
-## Contributing
+### Project Structure
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```
+.
+├── cmd/decoder/          # CLI entry point
+├── internal/
+│   ├── decoder/          # Core decoding logic
+│   └── ui/               # TUI implementation
+├── pkg/utils/            # Utility functions
+├── legacy/               # Original shell script
+├── .github/workflows/    # CI/CD workflows
+├── Makefile              # Build automation
+├── go.mod                # Go module definition
+└── README.md             # This file
+```
 
-## License
+## 🔄 Migration from Shell Script
+
+The original shell script has been moved to the `legacy/` directory and is still available for use. The Go implementation provides:
+
+✅ **Same behavior** - Identical decoding algorithm and output format  
+✅ **Same flags** - Compatible command-line interface  
+✅ **Better performance** - Faster execution with native code  
+✅ **No dependencies** - No need for jq, gzip, or base64 tools  
+✅ **Enhanced features** - Interactive TUI mode and better error handling  
+
+See `legacy/README.md` for more details on differences and migration notes.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Write tests for new features
+- Ensure all tests pass (`make test`)
+- Format code with `go fmt`
+- Run `go vet` before committing
+- Update documentation as needed
+
+## 📜 License
 
 This project is provided as-is for use with Cloudflare DLP forensic analysis.
 
-## Disclaimer
+## ⚠️ Disclaimer
 
 This tool is intended for legitimate forensic analysis and security investigation purposes only. Always ensure you have proper authorization before analyzing any data.
+
+## 🐛 Issues and Support
+
+If you encounter any issues or have questions:
+
+1. Check the [existing issues](https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/issues)
+2. Create a new issue with:
+   - Clear description of the problem
+   - Steps to reproduce
+   - Expected vs actual behavior
+   - System information (OS, Go version)
+
+## 🔗 Links
+
+- **Repository**: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder
+- **Issues**: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/issues
+- **Releases**: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases
+
+## 🙏 Acknowledgments
+
+- Built with [bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI
+- Inspired by the need for better DLP forensic tooling
