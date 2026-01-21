@@ -1,6 +1,6 @@
 # Package Manager Publishing Setup Guide
 
-This guide explains how to set up automated publishing to Homebrew, Scoop, and Winget package managers.
+This guide explains how to set up automated publishing to Homebrew and Winget package managers.
 
 ## Prerequisites
 
@@ -43,41 +43,7 @@ When you create a release tag (e.g., `v2.0.0`):
 3. GoReleaser automatically creates/updates the formula in `homebrew-tap`
 4. Users can install with: `brew install devolvio-b-v/tap/cf-dlp-decode`
 
-## 2. Scoop Setup (Windows)
-
-### One-Time Setup
-
-1. **Create the Scoop bucket repository**
-   - Go to https://github.com/organizations/Devolvio-B-V/repositories/new
-   - Repository name: `scoop-bucket`
-   - Description: "Scoop bucket for Devolvio B.V. tools"
-   - Visibility: Public
-   - Click "Create repository"
-   - **Note**: Leave the repository empty - GoReleaser will populate it automatically
-
-2. **Generate a Personal Access Token (PAT)**
-   - Follow the same steps as Homebrew above, or reuse the same token
-   - Token name: `GoReleaser Scoop Bucket` (if creating a new one)
-   - Scopes: `repo`
-
-3. **Add the token as a repository secret**
-   - Go to https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/settings/secrets/actions
-   - Click "New repository secret"
-   - Name: `SCOOP_BUCKET_GITHUB_TOKEN`
-   - Value: Paste the token
-   - Click "Add secret"
-
-### How It Works
-
-When you create a release tag:
-1. GoReleaser automatically creates/updates the manifest in `scoop-bucket`
-2. Users can install with:
-   ```powershell
-   scoop bucket add devolvio-b-v https://github.com/Devolvio-B-V/scoop-bucket
-   scoop install cf-dlp-decode
-   ```
-
-## 3. Winget Setup (Windows)
+## 2. Winget Setup (Windows)
 
 Winget requires manual or semi-automated submission to the official Microsoft repository.
 
@@ -145,18 +111,17 @@ After setting up:
 
 3. **Verify package manager repositories**
    - Homebrew: Check https://github.com/Devolvio-B-V/homebrew-tap for the new formula
-   - Scoop: Check https://github.com/Devolvio-B-V/scoop-bucket for the new manifest
 
 ## Troubleshooting
 
-### Homebrew/Scoop: "Token authentication failed"
+### Homebrew: "Token authentication failed"
 - Verify the PAT has the correct permissions (`repo` scope)
 - Ensure the token hasn't expired
-- Check the secret name matches exactly: `HOMEBREW_TAP_GITHUB_TOKEN` or `SCOOP_BUCKET_GITHUB_TOKEN`
+- Check the secret name matches exactly: `HOMEBREW_TAP_GITHUB_TOKEN`
 
-### Homebrew/Scoop: Repository not found
+### Homebrew: Repository not found
 - Ensure the repository exists and is public
-- Verify the repository name matches exactly: `homebrew-tap` or `scoop-bucket`
+- Verify the repository name matches exactly: `homebrew-tap`
 
 ### Winget: PR rejected
 - Ensure all required manifest files are present
@@ -167,6 +132,5 @@ After setting up:
 
 - [GoReleaser Documentation](https://goreleaser.com/)
 - [Homebrew Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
-- [Scoop Bucket Documentation](https://github.com/ScoopInstaller/Scoop/wiki/Buckets)
 - [Winget Package Submission](https://github.com/microsoft/winget-pkgs/blob/master/AUTHORING_MANIFESTS.md)
 - [wingetcreate Documentation](https://github.com/microsoft/winget-create)

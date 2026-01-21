@@ -90,19 +90,6 @@ brews:
 #     confinement: strict
 #     license: MIT
 
-# Scoop (Windows)
-scoops:
-  - repository:
-      owner: Devolvio-B-V
-      name: scoop-bucket
-      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-    homepage: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder
-    description: "Cloudflare DLP Forensic Copy Decoder"
-    license: MIT
-
 # Docker images
 # dockers:
 #   - image_templates:

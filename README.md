@@ -33,12 +33,6 @@ When Cloudflare DLP captures sensitive data, it creates forensic copies stored a
 brew install devolvio-b-v/tap/cf-dlp-decode
 ```
 
-**Scoop (Windows)**
-```bash
-scoop bucket add devolvio-b-v https://github.com/Devolvio-B-V/scoop-bucket
-scoop install cf-dlp-decode
-```
-
 **Winget (Windows)**
 ```bash
 winget install Devolvio-B-V.cf-dlp-decode
@@ -254,7 +248,6 @@ This project is provided as-is for use with Cloudflare DLP forensic analysis.
 This project is automatically published to multiple package managers via GitHub Actions on each release:
 
 - **Homebrew**: Automatically updated via GoReleaser to the [homebrew-tap](https://github.com/Devolvio-B-V/homebrew-tap) repository
-- **Scoop**: Automatically updated via GoReleaser to the [scoop-bucket](https://github.com/Devolvio-B-V/scoop-bucket) repository  
 - **Winget**: Semi-automated submission to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)
 
 ### Setup Instructions
@@ -262,16 +255,15 @@ This project is automatically published to multiple package managers via GitHub 
 For detailed setup instructions, see [PACKAGE_MANAGERS_SETUP.md](PACKAGE_MANAGERS_SETUP.md).
 
 **Quick setup:**
-1. Create `homebrew-tap` and `scoop-bucket` repositories (GoReleaser will populate them)
+1. Create `homebrew-tap` repository (GoReleaser will populate it)
 2. Generate GitHub Personal Access Token with `repo` scope
-3. Add repository secrets: `HOMEBREW_TAP_GITHUB_TOKEN` and `SCOOP_BUCKET_GITHUB_TOKEN`
+3. Add repository secret: `HOMEBREW_TAP_GITHUB_TOKEN`
 4. For Winget: Use `wingetcreate` to submit updates (see setup guide)
 
 ### Required Repository Secrets
 
 Configure these in repository Settings → Secrets and variables → Actions:
 - `HOMEBREW_TAP_GITHUB_TOKEN`: Personal access token with write access to homebrew-tap repository
-- `SCOOP_BUCKET_GITHUB_TOKEN`: Personal access token with write access to scoop-bucket repository
 
 ## ⚠️ Disclaimer
 
