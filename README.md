@@ -219,7 +219,7 @@ The original shell script has been moved to the `legacy/` directory and is still
 ✅ **No dependencies** - No need for jq, gzip, or base64 tools  
 ✅ **Enhanced features** - Interactive TUI mode and better error handling  
 
-See [legacy/README.md](https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/blob/main/legacy/README.md) for more details on differences and migration notes.
+See [legacy/README.md](/legacy/README.md) for more details on differences and migration notes.
 
 ## 🤝 Contributing
 
