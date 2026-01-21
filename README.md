@@ -250,11 +250,6 @@ This project is automatically published to multiple package managers via GitHub 
 - **Homebrew**: Automatically updated via GoReleaser to the [homebrew-tap](https://github.com/Devolvio-B-V/homebrew-tap) repository
 - **Winget**: Automatically submitted via wingetcreate (requires fork of [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs))
 
-### Required Repository Secrets
-
-The following secrets are configured in repository Settings → Secrets and variables → Actions:
-- `HOMEBREW_TAP_GITHUB_TOKEN`: Personal access token with write access to homebrew-tap repository
-- `WINGET_GITHUB_TOKEN`: Personal access token with permissions to create PRs in microsoft/winget-pkgs fork
 
 ## ⚠️ Disclaimer
 
