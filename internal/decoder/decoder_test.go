@@ -217,8 +217,12 @@ func TestDecodeLogFile_EmptyPayload(t *testing.T) {
 	logJSON, _ := json.Marshal(entry)
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
-	gw.Write(logJSON)
-	gw.Close()
+	if _, err := gw.Write(logJSON); err != nil {
+		t.Fatalf("failed to gzip log file: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("failed to close gzip writer: %v", err)
+	}
 
 	opts := DecodeOptions{}
 	_, err := DecodeLogFile(bytes.NewReader(buf.Bytes()), opts)
@@ -241,8 +245,12 @@ func TestDecodeLogFile_InvalidBase64(t *testing.T) {
 	logJSON, _ := json.Marshal(entry)
 	var buf bytes.Buffer
 	gw := gzip.NewWriter(&buf)
-	gw.Write(logJSON)
-	gw.Close()
+	if _, err := gw.Write(logJSON); err != nil {
+		t.Fatalf("failed to gzip log file: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("failed to close gzip writer: %v", err)
+	}
 
 	opts := DecodeOptions{}
 	_, err := DecodeLogFile(bytes.NewReader(buf.Bytes()), opts)

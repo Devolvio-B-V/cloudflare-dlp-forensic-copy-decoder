@@ -159,10 +159,7 @@ func validateJSON(data []byte) error {
 // GetOutputFilename returns the appropriate output filename based on content type
 func GetOutputFilename(inputPath string, isJSON bool) string {
 	// Remove .log.gz extension
-	baseName := inputPath
-	if strings.HasSuffix(baseName, ".log.gz") {
-		baseName = strings.TrimSuffix(baseName, ".log.gz")
-	}
+	baseName := strings.TrimSuffix(inputPath, ".log.gz")
 
 	// Return appropriate extension
 	if isJSON {
@@ -173,9 +170,6 @@ func GetOutputFilename(inputPath string, isJSON bool) string {
 
 // GetLogJSONFilename returns the log JSON output filename
 func GetLogJSONFilename(inputPath string) string {
-	baseName := inputPath
-	if strings.HasSuffix(baseName, ".log.gz") {
-		baseName = strings.TrimSuffix(baseName, ".log.gz")
-	}
+	baseName := strings.TrimSuffix(inputPath, ".log.gz")
 	return baseName + ".log.json"
 }

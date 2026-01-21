@@ -25,10 +25,8 @@ const (
 type Model struct {
 	mode          Mode
 	inputPath     string
-	outputPath    string
 	result        *decoder.DecodeResult
 	err           error
-	cursor        int
 	showRaw       bool
 	exportPath    string
 	statusMessage string
