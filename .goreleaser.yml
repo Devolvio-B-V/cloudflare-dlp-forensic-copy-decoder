@@ -1,0 +1,104 @@
+# GoReleaser configuration
+# See: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: cf-dlp-decode
+    main: ./cmd/cf-dlp-decode
+    binary: cf-dlp-decode
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: cf-dlp-decode
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE*
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+
+# Homebrew tap
+brews:
+  - name: cf-dlp-decode
+    repository:
+      owner: Devolvio-B-V
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    directory: Formula
+    homepage: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder
+    description: "Cloudflare DLP Forensic Copy Decoder"
+    license: MIT
+    install: |
+      bin.install "cf-dlp-decode"
+    test: |
+      system "#{bin}/cf-dlp-decode", "--version"
+
+# Snapcraft (Linux Snap packages)
+# snapcrafts:
+#   - name: cf-dlp-decode
+#     summary: Cloudflare DLP Forensic Copy Decoder
+#     description: |
+#       A command-line tool and interactive TUI for decoding and extracting
+#       Cloudflare DLP forensic copies from compressed log files.
+#     publish: true
+#     grade: stable
+#     confinement: strict
+#     license: MIT
+
+# Docker images
+# dockers:
+#   - image_templates:
+#       - "ghcr.io/devolvio-b-v/cf-dlp-decode:{{ .Tag }}"
+#       - "ghcr.io/devolvio-b-v/cf-dlp-decode:latest"
+#     dockerfile: Dockerfile
+#     build_flag_templates:
+#       - "--pull"
+#       - "--label=org.opencontainers.image.created={{.Date}}"
+#       - "--label=org.opencontainers.image.title={{.ProjectName}}"
+#       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+#       - "--label=org.opencontainers.image.version={{.Version}}"
