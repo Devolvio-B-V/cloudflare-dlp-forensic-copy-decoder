@@ -25,7 +25,7 @@ USAGE
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 need() {
-  command -v "$1" >/dev/null 2>&1 || die "Missing required dependecy: $1"
+  command -v "$1" >/dev/null 2>&1 || die "Missing required dependency: $1"
 }
 
 # ---- deps ----
