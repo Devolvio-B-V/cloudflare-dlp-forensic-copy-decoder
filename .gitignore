@@ -14,8 +14,8 @@
 # Build artifacts
 /bin/
 /dist/
-decoder
-cf-dlp-decode
+/decoder
+/cf-dlp-decode
 
 # Go workspace file
 go.work
