@@ -74,7 +74,7 @@ cd cloudflare-dlp-forensic-copy-decoder
 make build
 
 # Or install directly
-go install github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/cmd/decoder@latest
+go install github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/cmd/cf-dlp-decode@latest
 ```
 
 ## 🚀 Usage
@@ -203,7 +203,7 @@ go test -race ./...
 
 ```
 .
-├── cmd/decoder/          # CLI entry point
+├── cmd/cf-dlp-decode/    # CLI entry point
 ├── internal/
 │   ├── decoder/          # Core decoding logic
 │   └── ui/               # TUI implementation

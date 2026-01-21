@@ -68,7 +68,7 @@ jobs:
           if [ "${{ matrix.os }}" = "windows" ]; then
             OUTPUT_NAME="${OUTPUT_NAME}.exe"
           fi
-          go build -o "$OUTPUT_NAME" ./cmd/decoder
+          go build -o "$OUTPUT_NAME" ./cmd/cf-dlp-decode
           ls -lh "$OUTPUT_NAME"
 
       - name: Upload artifact

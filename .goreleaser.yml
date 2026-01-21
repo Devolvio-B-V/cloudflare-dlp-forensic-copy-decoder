@@ -10,7 +10,7 @@ before:
 
 builds:
   - id: cf-dlp-decode
-    main: ./cmd/decoder
+    main: ./cmd/cf-dlp-decode
     binary: cf-dlp-decode
     env:
       - CGO_ENABLED=0

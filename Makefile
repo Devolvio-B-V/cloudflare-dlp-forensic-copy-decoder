@@ -30,7 +30,7 @@ help: ## Display this help message
 build: ## Build the binary for current platform
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/decoder
+	$(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/cf-dlp-decode
 	@echo "Binary built: $(BUILD_DIR)/$(BINARY_NAME)"
 
 test: ## Run tests
@@ -79,7 +79,7 @@ cross-build: ## Build for all platforms (linux, darwin, windows) and architectur
 				output_name=$$output_name.exe; \
 			fi; \
 			echo "Building for $$platform/$$arch..."; \
-			GOOS=$$platform GOARCH=$$arch $(GOBUILD) $(LDFLAGS) -o $$output_name ./cmd/decoder; \
+			GOOS=$$platform GOARCH=$$arch $(GOBUILD) $(LDFLAGS) -o $$output_name ./cmd/cf-dlp-decode; \
 		done \
 	done
 	@echo "Cross-compilation completed. Binaries in $(DIST_DIR)/"
