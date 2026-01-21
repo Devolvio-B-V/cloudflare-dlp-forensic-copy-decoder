@@ -10,6 +10,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,6 +50,8 @@ jobs:
   build:
     name: Build
     needs: test
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [linux, darwin, windows]
@@ -83,6 +87,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
