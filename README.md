@@ -255,9 +255,21 @@ This project is automatically published to multiple package managers via GitHub 
 
 - **Homebrew**: Automatically updated via GoReleaser to the [homebrew-tap](https://github.com/Devolvio-B-V/homebrew-tap) repository
 - **Scoop**: Automatically updated via GoReleaser to the [scoop-bucket](https://github.com/Devolvio-B-V/scoop-bucket) repository  
-- **Winget**: Manual submission required to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)
+- **Winget**: Semi-automated submission to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)
 
-To set up automatic publishing, configure these repository secrets:
+### Setup Instructions
+
+For detailed setup instructions, see [PACKAGE_MANAGERS_SETUP.md](PACKAGE_MANAGERS_SETUP.md).
+
+**Quick setup:**
+1. Create `homebrew-tap` and `scoop-bucket` repositories (GoReleaser will populate them)
+2. Generate GitHub Personal Access Token with `repo` scope
+3. Add repository secrets: `HOMEBREW_TAP_GITHUB_TOKEN` and `SCOOP_BUCKET_GITHUB_TOKEN`
+4. For Winget: Use `wingetcreate` to submit updates (see setup guide)
+
+### Required Repository Secrets
+
+Configure these in repository Settings → Secrets and variables → Actions:
 - `HOMEBREW_TAP_GITHUB_TOKEN`: Personal access token with write access to homebrew-tap repository
 - `SCOOP_BUCKET_GITHUB_TOKEN`: Personal access token with write access to scoop-bucket repository
 
