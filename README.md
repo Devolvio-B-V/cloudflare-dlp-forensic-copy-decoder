@@ -250,7 +250,6 @@ This project is automatically published to multiple package managers via GitHub 
 - **Homebrew**: Automatically updated via GoReleaser to the [homebrew-tap](https://github.com/Devolvio-B-V/homebrew-tap) repository
 - **Winget**: Automatically submitted via wingetcreate (requires fork of [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs))
 
-
 ## ⚠️ Disclaimer
 
 This tool is intended for legitimate forensic analysis and security investigation purposes only. Always ensure you have proper authorization before analyzing any data.
