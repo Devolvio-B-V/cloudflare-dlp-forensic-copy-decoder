@@ -1,7 +1,7 @@
 .PHONY: build test clean install cross-build help
 
 # Binary name
-BINARY_NAME=decoder
+BINARY_NAME=cf-dlp-decode
 BUILD_DIR=bin
 DIST_DIR=dist
 

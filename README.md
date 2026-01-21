@@ -26,23 +26,41 @@ When Cloudflare DLP captures sensitive data, it creates forensic copies stored a
 
 ## 📦 Installation
 
+### Via Package Managers
+
+**Homebrew (macOS and Linux)**
+```bash
+brew install devolvio-b-v/tap/cf-dlp-decode
+```
+
+**Scoop (Windows)**
+```bash
+scoop bucket add devolvio-b-v https://github.com/Devolvio-B-V/scoop-bucket
+scoop install cf-dlp-decode
+```
+
+**Winget (Windows)**
+```bash
+winget install Devolvio-B-V.cf-dlp-decode
+```
+
 ### Download Pre-built Binaries
 
 Download the latest release for your platform from the [Releases page](https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases):
 
 ```bash
 # Linux (amd64)
-curl -L -o decoder https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/latest/download/decoder-linux-amd64
-chmod +x decoder
-sudo mv decoder /usr/local/bin/
+curl -L -o cf-dlp-decode https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/latest/download/cf-dlp-decode-linux-amd64
+chmod +x cf-dlp-decode
+sudo mv cf-dlp-decode /usr/local/bin/
 
 # macOS (arm64)
-curl -L -o decoder https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/latest/download/decoder-darwin-arm64
-chmod +x decoder
-sudo mv decoder /usr/local/bin/
+curl -L -o cf-dlp-decode https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/latest/download/cf-dlp-decode-darwin-arm64
+chmod +x cf-dlp-decode
+sudo mv cf-dlp-decode /usr/local/bin/
 
 # Windows (amd64)
-# Download decoder-windows-amd64.exe and add to PATH
+# Download cf-dlp-decode-windows-amd64.exe and add to PATH
 ```
 
 ### Build from Source
@@ -66,7 +84,7 @@ go install github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/cmd/deco
 Launch the terminal user interface for an interactive experience:
 
 ```bash
-decoder --tui captured-data.log.gz
+cf-dlp-decode --tui captured-data.log.gz
 ```
 
 **TUI Features:**
@@ -89,22 +107,22 @@ Perfect for scripts and automation:
 
 ```bash
 # Basic usage
-decoder captured-data.log.gz
+cf-dlp-decode captured-data.log.gz
 
 # With custom output path
-decoder --input captured-data.log.gz --output decoded.json
+cf-dlp-decode --input captured-data.log.gz --output decoded.json
 
 # Force text decoding for unsupported content types
-decoder --try-text suspicious-upload.log.gz
+cf-dlp-decode --try-text suspicious-upload.log.gz
 
 # Read from stdin
-cat captured-data.log.gz | decoder --input -
+cat captured-data.log.gz | cf-dlp-decode --input -
 
 # Verbose output
-decoder --verbose captured-data.log.gz
+cf-dlp-decode --verbose captured-data.log.gz
 
 # Overwrite existing files
-decoder --overwrite captured-data.log.gz
+cf-dlp-decode --overwrite captured-data.log.gz
 ```
 
 ## 📝 Command-Line Options
@@ -230,6 +248,18 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ## 📜 License
 
 This project is provided as-is for use with Cloudflare DLP forensic analysis.
+
+## 📦 Package Manager Publishing
+
+This project is automatically published to multiple package managers via GitHub Actions on each release:
+
+- **Homebrew**: Automatically updated via GoReleaser to the [homebrew-tap](https://github.com/Devolvio-B-V/homebrew-tap) repository
+- **Scoop**: Automatically updated via GoReleaser to the [scoop-bucket](https://github.com/Devolvio-B-V/scoop-bucket) repository  
+- **Winget**: Manual submission required to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)
+
+To set up automatic publishing, configure these repository secrets:
+- `HOMEBREW_TAP_GITHUB_TOKEN`: Personal access token with write access to homebrew-tap repository
+- `SCOOP_BUCKET_GITHUB_TOKEN`: Personal access token with write access to scoop-bucket repository
 
 ## ⚠️ Disclaimer
 

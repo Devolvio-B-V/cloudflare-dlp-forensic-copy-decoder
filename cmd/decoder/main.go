@@ -134,8 +134,8 @@ func printHelp() {
 	fmt.Print(`Cloudflare DLP Forensic Copy Decoder
 
 Usage:
-  decoder [OPTIONS] <input.log.gz>
-  decoder --tui <input.log.gz>
+  cf-dlp-decode [OPTIONS] <input.log.gz>
+  cf-dlp-decode --tui <input.log.gz>
 
 What it does:
   1) Decompresses <input.log.gz> -> <input.log.json>
@@ -164,19 +164,19 @@ Options:
 
 Examples:
   # Basic usage (non-interactive)
-  decoder input.log.gz
+  cf-dlp-decode input.log.gz
 
   # Interactive TUI mode
-  decoder --tui input.log.gz
+  cf-dlp-decode --tui input.log.gz
 
   # Force text decoding
-  decoder --try-text input.log.gz
+  cf-dlp-decode --try-text input.log.gz
 
   # Custom output path
-  decoder --input input.log.gz --output custom-output.json
+  cf-dlp-decode --input input.log.gz --output custom-output.json
 
   # Read from stdin
-  cat input.log.gz | decoder --input -
+  cat input.log.gz | cf-dlp-decode --input -
 
 For more information, see: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder
 `)

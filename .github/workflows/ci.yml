@@ -40,13 +40,6 @@ jobs:
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.txt
-          flags: unittests
-          fail_ci_if_error: false
-
   build:
     name: Build
     needs: test
@@ -71,7 +64,7 @@ jobs:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
         run: |
-          OUTPUT_NAME=decoder-${{ matrix.os }}-${{ matrix.arch }}
+          OUTPUT_NAME=cf-dlp-decode-${{ matrix.os }}-${{ matrix.arch }}
           if [ "${{ matrix.os }}" = "windows" ]; then
             OUTPUT_NAME="${OUTPUT_NAME}.exe"
           fi
@@ -81,8 +74,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: decoder-${{ matrix.os }}-${{ matrix.arch }}
-          path: decoder-*
+          name: cf-dlp-decode-${{ matrix.os }}-${{ matrix.arch }}
+          path: cf-dlp-decode-*
 
   lint:
     name: Lint
