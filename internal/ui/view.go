@@ -29,7 +29,7 @@ func (m Model) viewFileSelection() string {
 	var b strings.Builder
 
 	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║        Cloudflare DLP Forensic Copy Decoder - TUI Mode        ║\n")
+	b.WriteString("║        Cloudflare DLP Forensic Copy Decoder - TUI Mode         ║\n")
 	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
 
 	if m.inputPath != "" {
@@ -54,7 +54,7 @@ func (m Model) viewDecoding() string {
 	var b strings.Builder
 
 	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                        Decoding File...                       ║\n")
+	b.WriteString("║                        Decoding File...                        ║\n")
 	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
 
 	b.WriteString(fmt.Sprintf("Processing: %s\n\n", m.inputPath))
@@ -67,7 +67,7 @@ func (m Model) viewPreview() string {
 	var b strings.Builder
 
 	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                      Decoded Payload Preview                  ║\n")
+	b.WriteString("║                      Decoded Payload Preview                   ║\n")
 	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
 
 	// Show metadata
@@ -129,7 +129,7 @@ func (m Model) viewExport() string {
 	var b strings.Builder
 
 	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                         Export Payload                        ║\n")
+	b.WriteString("║                         Export Payload                         ║\n")
 	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
 
 	defaultPath := decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)

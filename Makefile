@@ -84,8 +84,13 @@ cross-build: ## Build for all platforms (linux, darwin, windows) and architectur
 	done
 	@echo "Cross-compilation completed. Binaries in $(DIST_DIR)/"
 
-run: build ## Build and run the application
-	@$(BUILD_DIR)/$(BINARY_NAME) --help
+run: build ## Build and run the application (launches TUI by default)
+	@echo "Launching $(BINARY_NAME) (TUI mode by default when no args provided)..."
+	@$(BUILD_DIR)/$(BINARY_NAME)
+
+run-cli: build ## Build and run the application in non-interactive CLI mode (example)
+	@echo "Running $(BINARY_NAME) in CLI mode against testdata/input.log.gz (overwrites outputs)"
+	@$(BUILD_DIR)/$(BINARY_NAME) --overwrite testdata/input.log.gz
 
 all: clean fmt vet test build ## Run all checks and build
 

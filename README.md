@@ -81,6 +81,10 @@ Launch the terminal user interface for an interactive experience:
 cf-dlp-decode --tui captured-data.log.gz
 ```
 
+Note: Running `cf-dlp-decode` with no arguments now launches the interactive TUI by default.
+Provide a filename (positional argument or `--input`) to run the tool in non-interactive CLI mode.
+
+
 **TUI Features:**
 - Visual preview of decoded content
 - Easy file navigation

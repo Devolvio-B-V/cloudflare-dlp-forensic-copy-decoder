@@ -46,21 +46,36 @@ func main() {
 		*inputPath = flag.Arg(0)
 	}
 
-	// Validate input
-	if *inputPath == "" {
+	// If the user ran the binary without any arguments, default to TUI mode.
+	// This keeps the non-interactive CLI behavior when a filename or --input
+	// is provided, but makes the TUI the default for zero-argument runs.
+	if *inputPath == "" && flag.NArg() == 0 && !*useTUI {
+		*useTUI = true
+	}
+
+	// Validate input (only for non-TUI runs)
+	if *inputPath == "" && !*useTUI {
 		fmt.Fprintln(os.Stderr, "ERROR: No input file specified")
 		printHelp()
 		os.Exit(2)
 	}
 
-	// Check input file extension (unless reading from stdin)
-	if *inputPath != "-" && !strings.HasSuffix(*inputPath, ".log.gz") {
-		fmt.Fprintf(os.Stderr, "ERROR: Input must end with .log.gz (got: %s)\n", *inputPath)
-		os.Exit(1)
+	// Check input file extension (unless reading from stdin) -- only for non-TUI runs
+	if !*useTUI {
+		if *inputPath != "-" && !strings.HasSuffix(*inputPath, ".log.gz") {
+			fmt.Fprintf(os.Stderr, "ERROR: Input must end with .log.gz (got: %s)\n", *inputPath)
+			os.Exit(1)
+		}
 	}
 
 	// Launch TUI mode if requested
 	if *useTUI {
+		// If in print mode (used by tests), print the resolved mode instead of
+		// launching the interactive TUI. This avoids blocking tests.
+		if os.Getenv("CF_DLP_DECODE_PRINT_MODE") == "1" {
+			fmt.Println("TUI")
+			return
+		}
 		if err := runTUI(*inputPath); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: %v\n", err)
 			os.Exit(1)
