@@ -59,6 +59,24 @@ changelog:
       - '^chore:'
       - '^ci:'
 
+# Upload raw binaries alongside archives for all platforms
+# This enables direct binary downloads for package managers like Winget
+# and users who prefer direct downloads without extracting archives
+release:
+  extra_files:
+    - glob: ./dist/cf-dlp-decode_linux_amd64*/cf-dlp-decode
+      name_template: cf-dlp-decode-linux-amd64
+    - glob: ./dist/cf-dlp-decode_linux_arm64*/cf-dlp-decode
+      name_template: cf-dlp-decode-linux-arm64
+    - glob: ./dist/cf-dlp-decode_darwin_amd64*/cf-dlp-decode
+      name_template: cf-dlp-decode-darwin-amd64
+    - glob: ./dist/cf-dlp-decode_darwin_arm64*/cf-dlp-decode
+      name_template: cf-dlp-decode-darwin-arm64
+    - glob: ./dist/cf-dlp-decode_windows_amd64*/cf-dlp-decode.exe
+      name_template: cf-dlp-decode-windows-amd64.exe
+    - glob: ./dist/cf-dlp-decode_windows_arm64*/cf-dlp-decode.exe
+      name_template: cf-dlp-decode-windows-arm64.exe
+
 # Homebrew tap
 brews:
   - name: cf-dlp-decode
