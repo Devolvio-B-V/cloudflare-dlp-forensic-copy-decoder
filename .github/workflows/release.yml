@@ -80,8 +80,8 @@ jobs:
           $arm64Url = "https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/download/v$version/cf-dlp-decode-windows-arm64.exe"
           
           # Submit to Winget using wingetcreate
-          .\wingetcreate.exe update `
-            --id Devolvio-B-V.cf-dlp-decode `
+          # Note: Package identifier must be the first positional parameter, not an option
+          .\wingetcreate.exe update Devolvio-B-V.cf-dlp-decode `
             --version $version `
             --urls "$amd64Url|x64" "$arm64Url|arm64" `
             --token $env:WINGET_GITHUB_TOKEN `
