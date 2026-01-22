@@ -27,10 +27,6 @@ Tags:
 - forensic
 - bubbletea
 - cloudflare-zero-trust
-Agreements:
-- AgreementLabel: Disclaimer
-  AgreementUrl: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/blob/main/README.md#%EF%B8%8F-disclaimer
-  Agreement: This tool is intended for legitimate forensic analysis and security investigation purposes only. Always ensure you have proper authorization before analyzing any data.
 ReleaseNotes: Go rewrite with bubbletea TUI
 ReleaseNotesUrl: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/tag/v2.0.1
 InstallationNotes: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/blob/main/README.md#-usage
