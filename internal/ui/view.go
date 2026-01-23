@@ -98,23 +98,6 @@ func (m Model) viewFileBrowser() string {
 		endIdx = len(entries)
 	}
 	
-	// Adjust view offset if selected is out of view
-	if selectedIdx < startIdx {
-		startIdx = selectedIdx
-		endIdx = startIdx + maxVisible
-		if endIdx > len(entries) {
-			endIdx = len(entries)
-		}
-		m.fileBrowser.SetViewOffset(startIdx)
-	} else if selectedIdx >= endIdx {
-		endIdx = selectedIdx + 1
-		startIdx = endIdx - maxVisible
-		if startIdx < 0 {
-			startIdx = 0
-		}
-		m.fileBrowser.SetViewOffset(startIdx)
-	}
-	
 	if len(entries) == 0 {
 		b.WriteString(helpStyle.Render("  (empty directory)"))
 		b.WriteString("\n")

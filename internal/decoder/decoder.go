@@ -14,6 +14,16 @@ import (
 	"strings"
 )
 
+// Compression magic numbers
+const (
+	gzipMagic1  = 0x1f
+	gzipMagic2  = 0x8b
+	zlibMagic1  = 0x78
+	zlibMagic2a = 0x01
+	zlibMagic2b = 0x9c
+	zlibMagic2c = 0xda
+)
+
 // LogEntry represents the structure of a DLP forensic log file
 type LogEntry struct {
 	Payload string            `json:"Payload"`
@@ -201,15 +211,16 @@ func decompressDeflate(data []byte) ([]byte, error) {
 // tryDecompression attempts to detect and decompress data automatically
 // It tries gzip and deflate in order, returning the original data if neither works
 func tryDecompression(data []byte) []byte {
-	// Check for gzip magic number (0x1f 0x8b)
-	if len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b {
+	// Check for gzip magic number
+	if len(data) >= 2 && data[0] == gzipMagic1 && data[1] == gzipMagic2 {
 		if decompressed, err := decompressGzip(data); err == nil {
 			return decompressed
 		}
 	}
 	
-	// Check for zlib/deflate magic number (0x78 followed by various values)
-	if len(data) >= 2 && data[0] == 0x78 && (data[1] == 0x01 || data[1] == 0x9c || data[1] == 0xda) {
+	// Check for zlib/deflate magic number
+	if len(data) >= 2 && data[0] == zlibMagic1 && 
+		(data[1] == zlibMagic2a || data[1] == zlibMagic2b || data[1] == zlibMagic2c) {
 		if decompressed, err := decompressDeflate(data); err == nil {
 			return decompressed
 		}

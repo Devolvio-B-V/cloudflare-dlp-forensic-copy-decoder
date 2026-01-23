@@ -92,6 +92,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.Height = msg.Height - 10
 		}
 		
+		// Adjust file browser view offset for new height
+		if m.fileBrowser != nil && m.mode == ModeFileBrowser {
+			maxVisible := m.height - 12
+			if maxVisible < 5 {
+				maxVisible = 5
+			}
+			m.fileBrowser.AdjustViewOffset(maxVisible)
+		}
+		
 		return m, nil
 	case decodeSuccessMsg:
 		m.result = msg.result
@@ -137,10 +146,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "j", "down":
 			if m.fileBrowser != nil {
 				m.fileBrowser.MoveDown()
+				// Adjust view offset after moving
+				maxVisible := m.height - 12
+				if maxVisible < 5 {
+					maxVisible = 5
+				}
+				m.fileBrowser.AdjustViewOffset(maxVisible)
 			}
 		case "k", "up":
 			if m.fileBrowser != nil {
 				m.fileBrowser.MoveUp()
+				// Adjust view offset after moving
+				maxVisible := m.height - 12
+				if maxVisible < 5 {
+					maxVisible = 5
+				}
+				m.fileBrowser.AdjustViewOffset(maxVisible)
 			}
 		case "enter":
 			if m.fileBrowser != nil {
@@ -164,13 +185,12 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "g":
 			// Go to top
 			if m.fileBrowser != nil {
-				m.fileBrowser.selectedIndex = 0
-				m.fileBrowser.viewOffset = 0
+				m.fileBrowser.GotoTop()
 			}
 		case "G":
 			// Go to bottom
-			if m.fileBrowser != nil && len(m.fileBrowser.entries) > 0 {
-				m.fileBrowser.selectedIndex = len(m.fileBrowser.entries) - 1
+			if m.fileBrowser != nil {
+				m.fileBrowser.GotoBottom()
 			}
 		}
 

@@ -14,6 +14,22 @@ import (
 
 const version = "2.0.0"
 
+// boolFlags contains all boolean flags that don't take a value
+var boolFlags = map[string]bool{
+	"--tui":       true,
+	"--try-text":  true,
+	"--overwrite": true,
+	"--verbose":   true,
+	"--help":      true,
+	"--version":   true,
+	"-tui":        true,
+	"-try-text":   true,
+	"-overwrite":  true,
+	"-verbose":    true,
+	"-help":       true,
+	"-version":    true,
+}
+
 // reorderArgs moves all flags to the beginning of the argument list
 // This allows flags to be specified after positional arguments
 func reorderArgs(args []string) []string {
@@ -28,19 +44,10 @@ func reorderArgs(args []string) []string {
 			if strings.Contains(arg, "=") {
 				// Flag with value like --input=file.log.gz
 				continue
-			} else if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-				// Check if it's a boolean flag or a flag that takes a value
-				// Boolean flags don't consume the next argument
-				isBoolFlag := arg == "--tui" || arg == "--try-text" || arg == "--overwrite" || 
-					arg == "--verbose" || arg == "--help" || arg == "--version" ||
-					arg == "-tui" || arg == "-try-text" || arg == "-overwrite" || 
-					arg == "-verbose" || arg == "-help" || arg == "-version"
-				
-				if !isBoolFlag && i+1 < len(args) {
-					// This flag takes a value, include it
-					i++
-					flags = append(flags, args[i])
-				}
+			} else if !boolFlags[arg] && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				// This flag takes a value, include it
+				i++
+				flags = append(flags, args[i])
 			}
 		} else {
 			positional = append(positional, arg)

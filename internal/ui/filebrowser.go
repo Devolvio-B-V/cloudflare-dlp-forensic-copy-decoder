@@ -207,3 +207,37 @@ func (fb *FileBrowser) GoToDir(dir string) error {
 	fb.currentDir = absDir
 	return fb.loadEntries()
 }
+
+// GotoTop moves selection to the first entry
+func (fb *FileBrowser) GotoTop() {
+	fb.selectedIndex = 0
+	fb.viewOffset = 0
+}
+
+// GotoBottom moves selection to the last entry
+func (fb *FileBrowser) GotoBottom() {
+	if len(fb.entries) > 0 {
+		fb.selectedIndex = len(fb.entries) - 1
+	}
+}
+
+// AdjustViewOffset adjusts the view offset to keep the selected item visible
+func (fb *FileBrowser) AdjustViewOffset(maxVisible int) {
+	selectedIdx := fb.selectedIndex
+	startIdx := fb.viewOffset
+	endIdx := startIdx + maxVisible
+	
+	if endIdx > len(fb.entries) {
+		endIdx = len(fb.entries)
+	}
+	
+	// Adjust view offset if selected is out of view
+	if selectedIdx < startIdx {
+		fb.viewOffset = selectedIdx
+	} else if selectedIdx >= endIdx {
+		fb.viewOffset = selectedIdx - maxVisible + 1
+		if fb.viewOffset < 0 {
+			fb.viewOffset = 0
+		}
+	}
+}
