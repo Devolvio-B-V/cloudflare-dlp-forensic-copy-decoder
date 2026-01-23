@@ -14,6 +14,43 @@ import (
 
 const version = "2.0.0"
 
+// reorderArgs moves all flags to the beginning of the argument list
+// This allows flags to be specified after positional arguments
+func reorderArgs(args []string) []string {
+	var flags []string
+	var positional []string
+	
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "-") {
+			flags = append(flags, arg)
+			// Check if this flag takes a value (has = or next arg is not a flag)
+			if strings.Contains(arg, "=") {
+				// Flag with value like --input=file.log.gz
+				continue
+			} else if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				// Check if it's a boolean flag or a flag that takes a value
+				// Boolean flags don't consume the next argument
+				isBoolFlag := arg == "--tui" || arg == "--try-text" || arg == "--overwrite" || 
+					arg == "--verbose" || arg == "--help" || arg == "--version" ||
+					arg == "-tui" || arg == "-try-text" || arg == "-overwrite" || 
+					arg == "-verbose" || arg == "-help" || arg == "-version"
+				
+				if !isBoolFlag && i+1 < len(args) {
+					// This flag takes a value, include it
+					i++
+					flags = append(flags, args[i])
+				}
+			}
+		} else {
+			positional = append(positional, arg)
+		}
+	}
+	
+	// Return flags first, then positional arguments
+	return append(flags, positional...)
+}
+
 func main() {
 	// Define flags
 	var (
@@ -27,7 +64,10 @@ func main() {
 		showVer    = flag.Bool("version", false, "Show version")
 	)
 
-	flag.Parse()
+	// Reorder arguments to handle flags after positional arguments
+	// This allows both "cf-dlp-decode --overwrite file.log.gz" and "cf-dlp-decode file.log.gz --overwrite"
+	reorderedArgs := reorderArgs(os.Args[1:])
+	flag.CommandLine.Parse(reorderedArgs)
 
 	// Handle help
 	if *showHelp {
