@@ -6,6 +6,7 @@ package decoder
 import (
 	"bytes"
 	"compress/gzip"
+	"compress/zlib"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -94,6 +95,14 @@ func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error
 		if err != nil {
 			return nil, fmt.Errorf("gzip decode failed (is payload really gzipped?): %w", err)
 		}
+	} else if contentEncoding == "deflate" {
+		payloadBytes, err = decompressDeflate(payloadBytes)
+		if err != nil {
+			return nil, fmt.Errorf("deflate decode failed (is payload really deflated?): %w", err)
+		}
+	} else if contentEncoding == "" {
+		// No content-encoding header, try to detect compression automatically
+		payloadBytes = tryDecompression(payloadBytes)
 	}
 
 	// Determine payload type and set flags
@@ -109,7 +118,35 @@ func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error
 		} else {
 			result.Payload = prettyPayload.Bytes()
 		}
+	} else if strings.HasPrefix(contentType, "application/xml") || strings.HasPrefix(contentType, "text/xml") {
+		// XML content types
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else if strings.HasPrefix(contentType, "text/html") {
+		// HTML content
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else if strings.HasPrefix(contentType, "text/csv") || strings.HasPrefix(contentType, "application/csv") {
+		// CSV content
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") {
+		// URL-encoded form data
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else if strings.HasPrefix(contentType, "application/javascript") || strings.HasPrefix(contentType, "text/javascript") {
+		// JavaScript content
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else if strings.HasPrefix(contentType, "application/typescript") || strings.HasPrefix(contentType, "text/typescript") {
+		// TypeScript content
+		result.IsText = true
+		result.Payload = payloadBytes
 	} else if strings.HasPrefix(contentType, "text/plain") || strings.HasPrefix(contentType, "multipart/form-data") {
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else if strings.HasPrefix(contentType, "text/") {
+		// Catch-all for any text/* content type
 		result.IsText = true
 		result.Payload = payloadBytes
 	} else if opts.TryText {
@@ -148,6 +185,38 @@ func decompressGzip(data []byte) ([]byte, error) {
 	defer reader.Close()
 
 	return io.ReadAll(reader)
+}
+
+// decompressDeflate decompresses deflate-encoded data
+func decompressDeflate(data []byte) ([]byte, error) {
+	reader, err := zlib.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return io.ReadAll(reader)
+}
+
+// tryDecompression attempts to detect and decompress data automatically
+// It tries gzip and deflate in order, returning the original data if neither works
+func tryDecompression(data []byte) []byte {
+	// Check for gzip magic number (0x1f 0x8b)
+	if len(data) >= 2 && data[0] == 0x1f && data[1] == 0x8b {
+		if decompressed, err := decompressGzip(data); err == nil {
+			return decompressed
+		}
+	}
+	
+	// Check for zlib/deflate magic number (0x78 followed by various values)
+	if len(data) >= 2 && data[0] == 0x78 && (data[1] == 0x01 || data[1] == 0x9c || data[1] == 0xda) {
+		if decompressed, err := decompressDeflate(data); err == nil {
+			return decompressed
+		}
+	}
+	
+	// Return original data if no compression detected or decompression failed
+	return data
 }
 
 // validateJSON checks if data is valid JSON
