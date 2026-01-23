@@ -8,43 +8,43 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Define color scheme similar to lazygit
+// Define Cloudflare-themed color scheme
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("39")). // Blue
-			Background(lipgloss.Color("235")). // Dark gray
+			Foreground(lipgloss.Color("255")). // White
+			Background(lipgloss.Color("#FF6633")). // Cloudflare Orange
 			Padding(0, 1)
 
 	selectedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("229")). // Light yellow
-			Background(lipgloss.Color("57")). // Purple/blue
+			Foreground(lipgloss.Color("255")). // White
+			Background(lipgloss.Color("#FF6633")). // Cloudflare Orange
 			Bold(true)
 
 	directoryStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("39")). // Blue
+			Foreground(lipgloss.Color("#FF6633")). // Cloudflare Orange
 			Bold(true)
 
 	fileStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252")) // Light gray
+			Foreground(lipgloss.Color("250")) // Light gray
 
 	statusBarStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("230")). // Light yellow
-			Background(lipgloss.Color("235")). // Dark gray
+			Foreground(lipgloss.Color("255")). // White
+			Background(lipgloss.Color("235")). // Dark background
 			Padding(0, 1)
 
 	helpStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")) // Dark gray
+			Foreground(lipgloss.Color("244")) // Medium gray
 
 	errorStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("196")). // Red
+			Foreground(lipgloss.Color("203")). // Softer red
 			Bold(true)
 
 	successStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("46")) // Green
+			Foreground(lipgloss.Color("#2ECC40")) // Success green
 
 	borderStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("240")) // Gray
+			Foreground(lipgloss.Color("#FF6633")) // Cloudflare Orange
 )
 
 // View renders the current state
