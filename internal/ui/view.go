@@ -5,13 +5,53 @@ import (
 	"strings"
 
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/internal/decoder"
+	"github.com/charmbracelet/lipgloss"
+)
+
+// Define color scheme similar to lazygit
+var (
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("39")). // Blue
+			Background(lipgloss.Color("235")). // Dark gray
+			Padding(0, 1)
+
+	selectedStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("229")). // Light yellow
+			Background(lipgloss.Color("57")). // Purple/blue
+			Bold(true)
+
+	directoryStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("39")). // Blue
+			Bold(true)
+
+	fileStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252")) // Light gray
+
+	statusBarStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("230")). // Light yellow
+			Background(lipgloss.Color("235")). // Dark gray
+			Padding(0, 1)
+
+	helpStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")) // Dark gray
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("196")). // Red
+			Bold(true)
+
+	successStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("46")) // Green
+
+	borderStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240")) // Gray
 )
 
 // View renders the current state
 func (m Model) View() string {
 	switch m.mode {
-	case ModeFileSelection:
-		return m.viewFileSelection()
+	case ModeFileBrowser:
+		return m.viewFileBrowser()
 	case ModeDecoding:
 		return m.viewDecoding()
 	case ModePreview:
@@ -25,149 +65,256 @@ func (m Model) View() string {
 	}
 }
 
-func (m Model) viewFileSelection() string {
+func (m Model) viewFileBrowser() string {
 	var b strings.Builder
-
-	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║        Cloudflare DLP Forensic Copy Decoder - TUI Mode         ║\n")
-	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
-
-	if m.inputPath != "" {
-		b.WriteString(fmt.Sprintf("Input file: %s\n\n", m.inputPath))
-		b.WriteString("Press [Enter] to decode, [q] to quit\n")
-	} else {
-		b.WriteString("No input file specified.\n")
-		b.WriteString("Usage: decoder --tui <input.log.gz>\n\n")
-		b.WriteString("Press [q] to quit\n")
+	
+	// Title bar
+	title := titleStyle.Width(m.width).Render("  Cloudflare DLP Forensic Copy Decoder - File Browser")
+	b.WriteString(title)
+	b.WriteString("\n\n")
+	
+	if m.fileBrowser == nil {
+		b.WriteString("Error: File browser not initialized\n")
+		return b.String()
 	}
-
+	
+	// Current directory
+	b.WriteString(directoryStyle.Render(fmt.Sprintf("📁 %s", m.fileBrowser.GetCurrentDir())))
+	b.WriteString("\n\n")
+	
+	// File list
+	entries := m.fileBrowser.GetEntries()
+	selectedIdx := m.fileBrowser.GetSelectedIndex()
+	
+	// Calculate visible range
+	maxVisible := m.height - 12
+	if maxVisible < 5 {
+		maxVisible = 5
+	}
+	
+	startIdx := m.fileBrowser.GetViewOffset()
+	endIdx := startIdx + maxVisible
+	if endIdx > len(entries) {
+		endIdx = len(entries)
+	}
+	
+	// Adjust view offset if selected is out of view
+	if selectedIdx < startIdx {
+		startIdx = selectedIdx
+		endIdx = startIdx + maxVisible
+		if endIdx > len(entries) {
+			endIdx = len(entries)
+		}
+		m.fileBrowser.SetViewOffset(startIdx)
+	} else if selectedIdx >= endIdx {
+		endIdx = selectedIdx + 1
+		startIdx = endIdx - maxVisible
+		if startIdx < 0 {
+			startIdx = 0
+		}
+		m.fileBrowser.SetViewOffset(startIdx)
+	}
+	
+	if len(entries) == 0 {
+		b.WriteString(helpStyle.Render("  (empty directory)"))
+		b.WriteString("\n")
+	} else {
+		for i := startIdx; i < endIdx; i++ {
+			entry := entries[i]
+			
+			var line string
+			if entry.IsDir {
+				icon := "📁"
+				if entry.Name == ".." {
+					icon = "⬆️ "
+				}
+				line = fmt.Sprintf("  %s %s", icon, entry.Name)
+			} else {
+				icon := "📄"
+				if strings.HasSuffix(entry.Name, ".log.gz") {
+					icon = "📦"
+				}
+				line = fmt.Sprintf("  %s %s", icon, entry.Name)
+			}
+			
+			if i == selectedIdx {
+				b.WriteString(selectedStyle.Width(m.width - 2).Render(line))
+			} else if entry.IsDir {
+				b.WriteString(directoryStyle.Render(line))
+			} else {
+				b.WriteString(fileStyle.Render(line))
+			}
+			b.WriteString("\n")
+		}
+		
+		// Show scroll indicator
+		if len(entries) > maxVisible {
+			b.WriteString(helpStyle.Render(fmt.Sprintf("  (%d-%d of %d)", startIdx+1, endIdx, len(entries))))
+			b.WriteString("\n")
+		}
+	}
+	
+	b.WriteString("\n")
+	
+	// Status bar
+	statusBar := statusBarStyle.Width(m.width).Render(
+		fmt.Sprintf(" %d files/folders │ Select: ↑↓/jk │ Enter: open │ h: home │ g/G: top/bottom │ q: quit", len(entries)),
+	)
+	b.WriteString(statusBar)
+	
 	if m.statusMessage != "" {
 		b.WriteString("\n")
-		b.WriteString(m.statusMessage)
-		b.WriteString("\n")
+		b.WriteString(helpStyle.Render(m.statusMessage))
 	}
-
+	
 	return b.String()
 }
 
 func (m Model) viewDecoding() string {
 	var b strings.Builder
-
-	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                        Decoding File...                        ║\n")
-	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
-
+	
+	title := titleStyle.Width(m.width).Render("  Decoding File...")
+	b.WriteString(title)
+	b.WriteString("\n\n")
+	
 	b.WriteString(fmt.Sprintf("Processing: %s\n\n", m.inputPath))
 	b.WriteString("Please wait...\n")
-
+	
 	return b.String()
 }
 
 func (m Model) viewPreview() string {
 	var b strings.Builder
-
-	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                      Decoded Payload Preview                   ║\n")
-	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
-
+	
+	// Title bar
+	title := titleStyle.Width(m.width).Render("  Decoded Payload Preview")
+	b.WriteString(title)
+	b.WriteString("\n\n")
+	
 	// Show metadata
-	b.WriteString(fmt.Sprintf("File: %s\n", truncate(m.inputPath, 60)))
-	b.WriteString(fmt.Sprintf("Content-Type: %s\n", m.result.ContentType))
-
+	metaLine := fmt.Sprintf("📄 %s │ %s", 
+		truncate(m.inputPath, 40),
+		m.result.ContentType,
+	)
 	if m.result.IsJSON {
-		b.WriteString("Format: JSON\n")
+		metaLine += " │ JSON"
 	} else if m.result.IsText {
-		b.WriteString("Format: Plain Text\n")
+		metaLine += " │ Text"
 	}
+	b.WriteString(helpStyle.Render(metaLine))
 	b.WriteString("\n")
-
-	// Show preview
-	b.WriteString("──────────────────────────────────────────────────────────────────\n")
-
-	payload := string(m.result.Payload)
-	previewHeight := m.height - 15
-	if previewHeight < 5 {
-		previewHeight = 5
-	}
-
-	// Show first N lines
-	lines := strings.Split(payload, "\n")
-	displayLines := previewHeight
-	if len(lines) < displayLines {
-		displayLines = len(lines)
-	}
-
-	for i := 0; i < displayLines; i++ {
-		line := lines[i]
-		if len(line) > m.width-2 {
-			line = line[:m.width-5] + "..."
-		}
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-
-	if len(lines) > displayLines {
-		b.WriteString(fmt.Sprintf("\n... (%d more lines)\n", len(lines)-displayLines))
-	}
-
-	b.WriteString("──────────────────────────────────────────────────────────────────\n\n")
-
-	// Show controls
-	b.WriteString("Controls:\n")
-	b.WriteString("  [s/e] Save/Export  [r] Toggle Raw  [o] Open New File  [q] Quit\n")
-
+	b.WriteString(borderStyle.Render(strings.Repeat("─", m.width)))
+	b.WriteString("\n")
+	
+	// Show viewport with content
+	b.WriteString(m.viewport.View())
+	b.WriteString("\n")
+	
+	b.WriteString(borderStyle.Render(strings.Repeat("─", m.width)))
+	b.WriteString("\n")
+	
+	// Status bar with keybindings
+	statusBar := statusBarStyle.Width(m.width).Render(
+		" ↑↓/jk: scroll │ d/u: page │ g/G: top/bottom │ s: save │ b: back │ q: quit",
+	)
+	b.WriteString(statusBar)
+	
 	if m.statusMessage != "" {
 		b.WriteString("\n")
-		b.WriteString(m.statusMessage)
-		b.WriteString("\n")
+		if strings.Contains(m.statusMessage, "success") || strings.Contains(m.statusMessage, "Exported") {
+			b.WriteString(successStyle.Render(m.statusMessage))
+		} else {
+			b.WriteString(helpStyle.Render(m.statusMessage))
+		}
 	}
-
+	
 	return b.String()
 }
 
 func (m Model) viewExport() string {
 	var b strings.Builder
-
-	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                         Export Payload                         ║\n")
-	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
-
+	
+	title := titleStyle.Width(m.width).Render("  Export Payload")
+	b.WriteString(title)
+	b.WriteString("\n\n")
+	
 	defaultPath := decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)
-	b.WriteString(fmt.Sprintf("Default path: %s\n", defaultPath))
+	b.WriteString(fmt.Sprintf("Default path: %s\n", helpStyle.Render(defaultPath)))
 	b.WriteString("Custom path: ")
-
+	
 	if m.exportPath != "" {
-		b.WriteString(m.exportPath)
+		b.WriteString(selectedStyle.Render(m.exportPath))
 	} else {
-		b.WriteString("_")
+		b.WriteString(helpStyle.Render("_"))
 	}
 	b.WriteString("\n\n")
-
-	b.WriteString("Press [Enter] to export, [Esc] to cancel\n")
-
+	
+	b.WriteString(helpStyle.Render("Press [Enter] to export, [Esc] to cancel"))
+	b.WriteString("\n")
+	
 	if m.statusMessage != "" {
 		b.WriteString("\n")
-		b.WriteString(m.statusMessage)
-		b.WriteString("\n")
+		b.WriteString(helpStyle.Render(m.statusMessage))
 	}
-
+	
 	return b.String()
 }
 
 func (m Model) viewError() string {
 	var b strings.Builder
-
-	b.WriteString("╔════════════════════════════════════════════════════════════════╗\n")
-	b.WriteString("║                            ERROR                               ║\n")
-	b.WriteString("╚════════════════════════════════════════════════════════════════╝\n\n")
-
-	b.WriteString("An error occurred:\n\n")
-
+	
+	title := titleStyle.Width(m.width).Render("  ERROR")
+	b.WriteString(title)
+	b.WriteString("\n\n")
+	
+	b.WriteString(errorStyle.Render("An error occurred:"))
+	b.WriteString("\n\n")
+	
 	errMsg := wrapText(m.err.Error(), m.width-4)
 	b.WriteString(errMsg)
 	b.WriteString("\n\n")
-
-	b.WriteString("Press [o] to try another file, [q] to quit\n")
-
+	
+	b.WriteString(helpStyle.Render("Press [b] to go back to file browser, [q] to quit"))
+	b.WriteString("\n")
+	
 	return b.String()
+}
+
+// Helper functions
+
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
+}
+
+func wrapText(text string, width int) string {
+	if width <= 0 {
+		width = 80
+	}
+
+	var result strings.Builder
+	lines := strings.Split(text, "\n")
+
+	for _, line := range lines {
+		if len(line) <= width {
+			result.WriteString(line)
+			result.WriteString("\n")
+			continue
+		}
+
+		// Wrap long lines
+		for len(line) > width {
+			result.WriteString(line[:width])
+			result.WriteString("\n")
+			line = line[width:]
+		}
+		if len(line) > 0 {
+			result.WriteString(line)
+			result.WriteString("\n")
+		}
+	}
+
+	return result.String()
 }
