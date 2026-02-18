@@ -78,25 +78,40 @@ go install github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/cmd/cf-d
 Launch the terminal user interface for an interactive experience:
 
 ```bash
+# Launch TUI with file browser (no arguments)
+cf-dlp-decode
+
+# Launch TUI with a specific file
 cf-dlp-decode --tui captured-data.log.gz
 ```
 
-Note: Running `cf-dlp-decode` with no arguments now launches the interactive TUI by default.
+Note: Running `cf-dlp-decode` with no arguments now launches the interactive TUI with a file browser by default.
 Provide a filename (positional argument or `--input`) to run the tool in non-interactive CLI mode.
 
 
 **TUI Features:**
-- Visual preview of decoded content
-- Easy file navigation
+- **Interactive file browser** with vim-style navigation
+- **Lazygit-inspired UI** with color-coded interface
+- Visual preview of decoded content with scrolling
+- Easy file navigation and selection
 - Export decoded payloads
-- Toggle between formatted and raw views
 - Keyboard shortcuts for all operations
 
 **Keyboard Controls:**
-- `Enter` - Decode file
-- `s/e` - Save/Export decoded payload
-- `r` - Toggle raw/formatted view
-- `o` - Open new file
+
+*File Browser Mode:*
+- `↑↓` / `j/k` - Navigate up/down
+- `Enter` - Open directory or select .log.gz file
+- `h` - Go to home directory
+- `g` / `G` - Go to top/bottom of list
+- `q` - Quit
+
+*Preview Mode:*
+- `↑↓` / `j/k` - Scroll up/down
+- `d` / `u` - Page down/up (half page)
+- `g` / `G` - Go to top/bottom
+- `s` / `e` - Save/Export decoded payload
+- `b` - Back to file browser
 - `q` - Quit
 
 ### Non-Interactive CLI Mode
@@ -119,8 +134,9 @@ cat captured-data.log.gz | cf-dlp-decode --input -
 # Verbose output
 cf-dlp-decode --verbose captured-data.log.gz
 
-# Overwrite existing files
+# Overwrite existing files (flags can be before or after filename)
 cf-dlp-decode --overwrite captured-data.log.gz
+cf-dlp-decode captured-data.log.gz --overwrite
 ```
 
 ## 📝 Command-Line Options
@@ -151,9 +167,22 @@ Given an input file `example.log.gz`, the tool produces:
 The tool automatically handles:
 
 - **JSON**: `application/json*` → `.payload.json`
+- **XML**: `application/xml*`, `text/xml*` → `.payload.txt`
+- **HTML**: `text/html*` → `.payload.txt`
 - **Plain Text**: `text/plain*` → `.payload.txt`
-- **Form Data**: `multipart/form-data*` → `.payload.txt`
-- **Gzipped**: `content-encoding: gzip` (automatic decompression)
+- **CSV**: `text/csv*`, `application/csv*` → `.payload.txt`
+- **JavaScript**: `application/javascript*`, `text/javascript*` → `.payload.txt`
+- **TypeScript**: `application/typescript*`, `text/typescript*` → `.payload.txt`
+- **Form Data**: `multipart/form-data*`, `application/x-www-form-urlencoded*` → `.payload.txt`
+- **Generic Text**: Any `text/*` content type → `.payload.txt`
+
+### Compression Support
+
+The tool automatically detects and handles multiple compression formats:
+
+- **Gzip**: `content-encoding: gzip` or automatic detection via magic number
+- **Deflate**: `content-encoding: deflate` or automatic detection via magic number
+- **Automatic Detection**: Even without content-encoding headers, the tool tries to detect compressed payloads
 
 For other content types, use `--try-text` to force text decoding.
 

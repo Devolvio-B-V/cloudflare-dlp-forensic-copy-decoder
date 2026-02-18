@@ -3,10 +3,10 @@ package ui
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/internal/decoder"
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/pkg/utils"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -14,10 +14,15 @@ import (
 type Mode int
 
 const (
-	ModeFileSelection Mode = iota
+	// ModeFileBrowser is the UI mode for browsing files.
+	ModeFileBrowser Mode = iota
+	// ModeDecoding is the UI mode while decoding a selected file.
 	ModeDecoding
+	// ModePreview is the UI mode showing decoded content preview.
 	ModePreview
+	// ModeExport is the UI mode used when exporting decoded payloads.
 	ModeExport
+	// ModeError is the UI mode shown when an error occurs.
 	ModeError
 )
 
@@ -32,15 +37,36 @@ type Model struct {
 	statusMessage string
 	width         int
 	height        int
+	fileBrowser   *FileBrowser
+	viewport      viewport.Model
+	ready         bool
 }
 
 // NewModel creates a new TUI model
 func NewModel(inputPath string) Model {
+	var fb *FileBrowser
+	mode := ModeFileBrowser
+
+	// If an input path is provided, skip file browser
+	if inputPath != "" {
+		mode = ModeDecoding
+	} else {
+		// Create file browser starting at current directory
+		var err error
+		fb, err = NewFileBrowser("")
+		if err != nil {
+			// Fall back to current directory on error
+			fb, _ = NewFileBrowser(".")
+		}
+	}
+
 	return Model{
-		mode:      ModeFileSelection,
-		inputPath: inputPath,
-		width:     80,
-		height:    24,
+		mode:        mode,
+		inputPath:   inputPath,
+		width:       80,
+		height:      24,
+		fileBrowser: fb,
+		viewport:    viewport.New(80, 20),
 	}
 }
 
@@ -61,11 +87,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+
+		// Update viewport size
+		if !m.ready {
+			m.viewport = viewport.New(msg.Width, msg.Height-10)
+			m.ready = true
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - 10
+		}
+
+		// Adjust file browser view offset for new height
+		if m.fileBrowser != nil && m.mode == ModeFileBrowser {
+			maxVisible := m.height - 12
+			if maxVisible < 5 {
+				maxVisible = 5
+			}
+			m.fileBrowser.AdjustViewOffset(maxVisible)
+		}
+
 		return m, nil
 	case decodeSuccessMsg:
 		m.result = msg.result
 		m.mode = ModePreview
 		m.statusMessage = "Decoded successfully"
+
+		// Set viewport content
+		content := string(m.result.Payload)
+		m.viewport.SetContent(content)
+
 		return m, nil
 	case decodeErrorMsg:
 		m.err = msg.err
@@ -81,20 +131,71 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Update viewport if in preview mode
+	if m.mode == ModePreview {
+		var cmd tea.Cmd
+		m.viewport, cmd = m.viewport.Update(msg)
+		return m, cmd
+	}
+
 	return m, nil
 }
 
 // handleKeyPress processes keyboard input
 func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.mode {
-	case ModeFileSelection:
+	case ModeFileBrowser:
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "j", "down":
+			if m.fileBrowser != nil {
+				m.fileBrowser.MoveDown()
+				// Adjust view offset after moving
+				maxVisible := m.height - 12
+				if maxVisible < 5 {
+					maxVisible = 5
+				}
+				m.fileBrowser.AdjustViewOffset(maxVisible)
+			}
+		case "k", "up":
+			if m.fileBrowser != nil {
+				m.fileBrowser.MoveUp()
+				// Adjust view offset after moving
+				maxVisible := m.height - 12
+				if maxVisible < 5 {
+					maxVisible = 5
+				}
+				m.fileBrowser.AdjustViewOffset(maxVisible)
+			}
 		case "enter":
-			if m.inputPath != "" {
-				m.mode = ModeDecoding
-				return m, m.decode()
+			if m.fileBrowser != nil {
+				path, isFile, err := m.fileBrowser.Enter()
+				if err != nil {
+					m.statusMessage = fmt.Sprintf("Error: %s", err.Error())
+				} else if isFile {
+					// File selected, start decoding
+					m.inputPath = path
+					m.mode = ModeDecoding
+					return m, m.decode()
+				}
+			}
+		case "h":
+			// Go to home directory
+			if m.fileBrowser != nil {
+				if err := m.fileBrowser.GoToHomeDir(); err != nil {
+					m.statusMessage = fmt.Sprintf("Error: %s", err.Error())
+				}
+			}
+		case "g":
+			// Go to top
+			if m.fileBrowser != nil {
+				m.fileBrowser.GotoTop()
+			}
+		case "G":
+			// Go to bottom
+			if m.fileBrowser != nil {
+				m.fileBrowser.GotoBottom()
 			}
 		}
 
@@ -108,10 +209,23 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "s", "e":
 			m.mode = ModeExport
 			m.statusMessage = "Enter export path (or press enter to use default)"
-		case "o":
-			m.mode = ModeFileSelection
-			m.statusMessage = "Enter new file path"
+		case "o", "b":
+			// Go back to file browser
+			m.mode = ModeFileBrowser
+			m.statusMessage = "Select a file to decode"
 			m.result = nil
+		case "j", "down":
+			m.viewport.ScrollDown(1)
+		case "k", "up":
+			m.viewport.ScrollUp(1)
+		case "d", "ctrl+d":
+			m.viewport.HalfPageDown()
+		case "u", "ctrl+u":
+			m.viewport.HalfPageUp()
+		case "g":
+			m.viewport.GotoTop()
+		case "G":
+			m.viewport.GotoBottom()
 		}
 
 	case ModeExport:
@@ -136,10 +250,10 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
-		case "o":
-			m.mode = ModeFileSelection
+		case "o", "b":
+			m.mode = ModeFileBrowser
 			m.err = nil
-			m.statusMessage = "Enter new file path"
+			m.statusMessage = "Select a file to decode"
 		}
 	}
 
@@ -209,43 +323,4 @@ func (m Model) exportFile() tea.Cmd {
 
 		return exportSuccessMsg{path: path}
 	}
-}
-
-// Helper functions
-
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
-}
-
-func wrapText(text string, width int) string {
-	if width <= 0 {
-		width = 80
-	}
-
-	var result strings.Builder
-	lines := strings.Split(text, "\n")
-
-	for _, line := range lines {
-		if len(line) <= width {
-			result.WriteString(line)
-			result.WriteString("\n")
-			continue
-		}
-
-		// Wrap long lines
-		for len(line) > width {
-			result.WriteString(line[:width])
-			result.WriteString("\n")
-			line = line[width:]
-		}
-		if len(line) > 0 {
-			result.WriteString(line)
-			result.WriteString("\n")
-		}
-	}
-
-	return result.String()
 }

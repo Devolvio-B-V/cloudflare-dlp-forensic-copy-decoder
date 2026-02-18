@@ -49,7 +49,7 @@ func WriteFile(path string, data []byte, overwrite bool) error {
 
 	// Rename temporary file to final path (atomic on most systems)
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath) // Clean up on error
+		_ = os.Remove(tmpPath) // Clean up on error (ignore remove error)
 		return fmt.Errorf("failed to rename temporary file: %w", err)
 	}
 

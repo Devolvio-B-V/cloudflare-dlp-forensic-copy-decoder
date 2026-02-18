@@ -12,7 +12,51 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "2.0.0"
+const version = "2.1.0"
+
+// boolFlags contains all boolean flags that don't take a value
+var boolFlags = map[string]bool{
+	"--tui":       true,
+	"--try-text":  true,
+	"--overwrite": true,
+	"--verbose":   true,
+	"--help":      true,
+	"--version":   true,
+	"-tui":        true,
+	"-try-text":   true,
+	"-overwrite":  true,
+	"-verbose":    true,
+	"-help":       true,
+	"-version":    true,
+}
+
+// reorderArgs moves all flags to the beginning of the argument list
+// This allows flags to be specified after positional arguments
+func reorderArgs(args []string) []string {
+	var flags []string
+	var positional []string
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if strings.HasPrefix(arg, "-") {
+			flags = append(flags, arg)
+			// Check if this flag takes a value (has = or next arg is not a flag)
+			if strings.Contains(arg, "=") {
+				// Flag with value like --input=file.log.gz
+				continue
+			} else if !boolFlags[arg] && i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
+				// This flag takes a value, include it
+				i++
+				flags = append(flags, args[i])
+			}
+		} else {
+			positional = append(positional, arg)
+		}
+	}
+
+	// Return flags first, then positional arguments
+	return append(flags, positional...)
+}
 
 func main() {
 	// Define flags
@@ -27,7 +71,13 @@ func main() {
 		showVer    = flag.Bool("version", false, "Show version")
 	)
 
-	flag.Parse()
+	// Reorder arguments to handle flags after positional arguments
+	// This allows both "cf-dlp-decode --overwrite file.log.gz" and "cf-dlp-decode file.log.gz --overwrite"
+	reorderedArgs := reorderArgs(os.Args[1:])
+	if err := flag.CommandLine.Parse(reorderedArgs); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: failed to parse flags: %v\n", err)
+		os.Exit(2)
+	}
 
 	// Handle help
 	if *showHelp {
