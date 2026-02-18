@@ -1,0 +1,25 @@
+run:
+  tests: true
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gofmt
+    - goimports
+    - ineffassign
+    - errcheck
+    - unused
+    - gosimple
+  disable:
+    - dupl
+    - depguard
+    - gosec
+
+issues:
+  exclude-use-default: false
+  exclude:
+    - "unused-parameter"
+  max-issues-per-linter: 0
+  max-same-issues: 0
