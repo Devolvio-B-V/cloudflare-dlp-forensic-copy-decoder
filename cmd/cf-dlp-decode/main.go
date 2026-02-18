@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "2.0.0"
+const version = "2.1.0"
 
 // boolFlags contains all boolean flags that don't take a value
 var boolFlags = map[string]bool{
@@ -35,7 +35,7 @@ var boolFlags = map[string]bool{
 func reorderArgs(args []string) []string {
 	var flags []string
 	var positional []string
-	
+
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if strings.HasPrefix(arg, "-") {
@@ -53,7 +53,7 @@ func reorderArgs(args []string) []string {
 			positional = append(positional, arg)
 		}
 	}
-	
+
 	// Return flags first, then positional arguments
 	return append(flags, positional...)
 }
@@ -74,7 +74,10 @@ func main() {
 	// Reorder arguments to handle flags after positional arguments
 	// This allows both "cf-dlp-decode --overwrite file.log.gz" and "cf-dlp-decode file.log.gz --overwrite"
 	reorderedArgs := reorderArgs(os.Args[1:])
-	flag.CommandLine.Parse(reorderedArgs)
+	if err := flag.CommandLine.Parse(reorderedArgs); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: failed to parse flags: %v\n", err)
+		os.Exit(2)
+	}
 
 	// Handle help
 	if *showHelp {

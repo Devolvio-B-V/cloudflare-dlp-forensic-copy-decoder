@@ -60,7 +60,7 @@ func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
-	defer gzReader.Close()
+	defer func() { _ = gzReader.Close() }()
 
 	logData, err := io.ReadAll(gzReader)
 	if err != nil {
@@ -99,18 +99,19 @@ func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error
 		return nil, fmt.Errorf("base64 decode failed (is .Payload valid base64?): %w", err)
 	}
 
-	// Handle gzip-encoded payloads
-	if contentEncoding == "gzip" {
+	// Handle gzip/deflate encoded payloads or try automatic detection
+	switch contentEncoding {
+	case "gzip":
 		payloadBytes, err = decompressGzip(payloadBytes)
 		if err != nil {
 			return nil, fmt.Errorf("gzip decode failed (is payload really gzipped?): %w", err)
 		}
-	} else if contentEncoding == "deflate" {
+	case "deflate":
 		payloadBytes, err = decompressDeflate(payloadBytes)
 		if err != nil {
 			return nil, fmt.Errorf("deflate decode failed (is payload really deflated?): %w", err)
 		}
-	} else if contentEncoding == "" {
+	case "":
 		// No content-encoding header, try to detect compression automatically
 		payloadBytes = tryDecompression(payloadBytes)
 	}
@@ -192,7 +193,7 @@ func decompressGzip(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	return io.ReadAll(reader)
 }
@@ -203,7 +204,7 @@ func decompressDeflate(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	return io.ReadAll(reader)
 }
@@ -217,15 +218,15 @@ func tryDecompression(data []byte) []byte {
 			return decompressed
 		}
 	}
-	
+
 	// Check for zlib/deflate magic number
-	if len(data) >= 2 && data[0] == zlibMagic1 && 
+	if len(data) >= 2 && data[0] == zlibMagic1 &&
 		(data[1] == zlibMagic2a || data[1] == zlibMagic2b || data[1] == zlibMagic2c) {
 		if decompressed, err := decompressDeflate(data); err == nil {
 			return decompressed
 		}
 	}
-	
+
 	// Return original data if no compression detected or decompression failed
 	return data
 }

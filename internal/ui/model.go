@@ -14,10 +14,15 @@ import (
 type Mode int
 
 const (
+	// ModeFileBrowser is the UI mode for browsing files.
 	ModeFileBrowser Mode = iota
+	// ModeDecoding is the UI mode while decoding a selected file.
 	ModeDecoding
+	// ModePreview is the UI mode showing decoded content preview.
 	ModePreview
+	// ModeExport is the UI mode used when exporting decoded payloads.
 	ModeExport
+	// ModeError is the UI mode shown when an error occurs.
 	ModeError
 )
 
@@ -41,7 +46,7 @@ type Model struct {
 func NewModel(inputPath string) Model {
 	var fb *FileBrowser
 	mode := ModeFileBrowser
-	
+
 	// If an input path is provided, skip file browser
 	if inputPath != "" {
 		mode = ModeDecoding
@@ -54,7 +59,7 @@ func NewModel(inputPath string) Model {
 			fb, _ = NewFileBrowser(".")
 		}
 	}
-	
+
 	return Model{
 		mode:        mode,
 		inputPath:   inputPath,
@@ -82,7 +87,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		
+
 		// Update viewport size
 		if !m.ready {
 			m.viewport = viewport.New(msg.Width, msg.Height-10)
@@ -91,7 +96,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - 10
 		}
-		
+
 		// Adjust file browser view offset for new height
 		if m.fileBrowser != nil && m.mode == ModeFileBrowser {
 			maxVisible := m.height - 12
@@ -100,17 +105,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.fileBrowser.AdjustViewOffset(maxVisible)
 		}
-		
+
 		return m, nil
 	case decodeSuccessMsg:
 		m.result = msg.result
 		m.mode = ModePreview
 		m.statusMessage = "Decoded successfully"
-		
+
 		// Set viewport content
 		content := string(m.result.Payload)
 		m.viewport.SetContent(content)
-		
+
 		return m, nil
 	case decodeErrorMsg:
 		m.err = msg.err
@@ -125,7 +130,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusMessage = fmt.Sprintf("Export failed: %s", msg.err.Error())
 		return m, nil
 	}
-	
+
 	// Update viewport if in preview mode
 	if m.mode == ModePreview {
 		var cmd tea.Cmd
@@ -210,13 +215,13 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.statusMessage = "Select a file to decode"
 			m.result = nil
 		case "j", "down":
-			m.viewport.LineDown(1)
+			m.viewport.ScrollDown(1)
 		case "k", "up":
-			m.viewport.LineUp(1)
+			m.viewport.ScrollUp(1)
 		case "d", "ctrl+d":
-			m.viewport.HalfViewDown()
+			m.viewport.HalfPageDown()
 		case "u", "ctrl+u":
-			m.viewport.HalfViewUp()
+			m.viewport.HalfPageUp()
 		case "g":
 			m.viewport.GotoTop()
 		case "G":
@@ -319,4 +324,3 @@ func (m Model) exportFile() tea.Cmd {
 		return exportSuccessMsg{path: path}
 	}
 }
-

@@ -12,12 +12,12 @@ import (
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("255")). // White
+			Foreground(lipgloss.Color("255")).     // White
 			Background(lipgloss.Color("#FF6633")). // Cloudflare Orange
 			Padding(0, 1)
 
 	selectedStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("255")). // White
+			Foreground(lipgloss.Color("255")).     // White
 			Background(lipgloss.Color("#FF6633")). // Cloudflare Orange
 			Bold(true)
 
@@ -67,44 +67,44 @@ func (m Model) View() string {
 
 func (m Model) viewFileBrowser() string {
 	var b strings.Builder
-	
+
 	// Title bar
 	title := titleStyle.Width(m.width).Render("  Cloudflare DLP Forensic Copy Decoder - File Browser")
 	b.WriteString(title)
 	b.WriteString("\n\n")
-	
+
 	if m.fileBrowser == nil {
 		b.WriteString("Error: File browser not initialized\n")
 		return b.String()
 	}
-	
+
 	// Current directory
 	b.WriteString(directoryStyle.Render(fmt.Sprintf("📁 %s", m.fileBrowser.GetCurrentDir())))
 	b.WriteString("\n\n")
-	
+
 	// File list
 	entries := m.fileBrowser.GetEntries()
 	selectedIdx := m.fileBrowser.GetSelectedIndex()
-	
+
 	// Calculate visible range
 	maxVisible := m.height - 12
 	if maxVisible < 5 {
 		maxVisible = 5
 	}
-	
+
 	startIdx := m.fileBrowser.GetViewOffset()
 	endIdx := startIdx + maxVisible
 	if endIdx > len(entries) {
 		endIdx = len(entries)
 	}
-	
+
 	if len(entries) == 0 {
 		b.WriteString(helpStyle.Render("  (empty directory)"))
 		b.WriteString("\n")
 	} else {
 		for i := startIdx; i < endIdx; i++ {
 			entry := entries[i]
-			
+
 			var line string
 			if entry.IsDir {
 				icon := "📁"
@@ -119,7 +119,7 @@ func (m Model) viewFileBrowser() string {
 				}
 				line = fmt.Sprintf("  %s %s", icon, entry.Name)
 			}
-			
+
 			if i == selectedIdx {
 				b.WriteString(selectedStyle.Width(m.width - 2).Render(line))
 			} else if entry.IsDir {
@@ -129,53 +129,53 @@ func (m Model) viewFileBrowser() string {
 			}
 			b.WriteString("\n")
 		}
-		
+
 		// Show scroll indicator
 		if len(entries) > maxVisible {
 			b.WriteString(helpStyle.Render(fmt.Sprintf("  (%d-%d of %d)", startIdx+1, endIdx, len(entries))))
 			b.WriteString("\n")
 		}
 	}
-	
+
 	b.WriteString("\n")
-	
+
 	// Status bar
 	statusBar := statusBarStyle.Width(m.width).Render(
 		fmt.Sprintf(" %d files/folders │ Select: ↑↓/jk │ Enter: open │ h: home │ g/G: top/bottom │ q: quit", len(entries)),
 	)
 	b.WriteString(statusBar)
-	
+
 	if m.statusMessage != "" {
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render(m.statusMessage))
 	}
-	
+
 	return b.String()
 }
 
 func (m Model) viewDecoding() string {
 	var b strings.Builder
-	
+
 	title := titleStyle.Width(m.width).Render("  Decoding File...")
 	b.WriteString(title)
 	b.WriteString("\n\n")
-	
+
 	b.WriteString(fmt.Sprintf("Processing: %s\n\n", m.inputPath))
 	b.WriteString("Please wait...\n")
-	
+
 	return b.String()
 }
 
 func (m Model) viewPreview() string {
 	var b strings.Builder
-	
+
 	// Title bar
 	title := titleStyle.Width(m.width).Render("  Decoded Payload Preview")
 	b.WriteString(title)
 	b.WriteString("\n\n")
-	
+
 	// Show metadata
-	metaLine := fmt.Sprintf("📄 %s │ %s", 
+	metaLine := fmt.Sprintf("📄 %s │ %s",
 		truncate(m.inputPath, 40),
 		m.result.ContentType,
 	)
@@ -188,20 +188,20 @@ func (m Model) viewPreview() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", m.width)))
 	b.WriteString("\n")
-	
+
 	// Show viewport with content
 	b.WriteString(m.viewport.View())
 	b.WriteString("\n")
-	
+
 	b.WriteString(borderStyle.Render(strings.Repeat("─", m.width)))
 	b.WriteString("\n")
-	
+
 	// Status bar with keybindings
 	statusBar := statusBarStyle.Width(m.width).Render(
 		" ↑↓/jk: scroll │ d/u: page │ g/G: top/bottom │ s: save │ b: back │ q: quit",
 	)
 	b.WriteString(statusBar)
-	
+
 	if m.statusMessage != "" {
 		b.WriteString("\n")
 		if strings.Contains(m.statusMessage, "success") || strings.Contains(m.statusMessage, "Exported") {
@@ -210,56 +210,56 @@ func (m Model) viewPreview() string {
 			b.WriteString(helpStyle.Render(m.statusMessage))
 		}
 	}
-	
+
 	return b.String()
 }
 
 func (m Model) viewExport() string {
 	var b strings.Builder
-	
+
 	title := titleStyle.Width(m.width).Render("  Export Payload")
 	b.WriteString(title)
 	b.WriteString("\n\n")
-	
+
 	defaultPath := decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)
 	b.WriteString(fmt.Sprintf("Default path: %s\n", helpStyle.Render(defaultPath)))
 	b.WriteString("Custom path: ")
-	
+
 	if m.exportPath != "" {
 		b.WriteString(selectedStyle.Render(m.exportPath))
 	} else {
 		b.WriteString(helpStyle.Render("_"))
 	}
 	b.WriteString("\n\n")
-	
+
 	b.WriteString(helpStyle.Render("Press [Enter] to export, [Esc] to cancel"))
 	b.WriteString("\n")
-	
+
 	if m.statusMessage != "" {
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render(m.statusMessage))
 	}
-	
+
 	return b.String()
 }
 
 func (m Model) viewError() string {
 	var b strings.Builder
-	
+
 	title := titleStyle.Width(m.width).Render("  ERROR")
 	b.WriteString(title)
 	b.WriteString("\n\n")
-	
+
 	b.WriteString(errorStyle.Render("An error occurred:"))
 	b.WriteString("\n\n")
-	
+
 	errMsg := wrapText(m.err.Error(), m.width-4)
 	b.WriteString(errMsg)
 	b.WriteString("\n\n")
-	
+
 	b.WriteString(helpStyle.Render("Press [b] to go back to file browser, [q] to quit"))
 	b.WriteString("\n")
-	
+
 	return b.String()
 }
 

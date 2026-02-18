@@ -33,22 +33,22 @@ func NewFileBrowser(startDir string) (*FileBrowser, error) {
 			startDir = "."
 		}
 	}
-	
+
 	fb := &FileBrowser{
 		currentDir: startDir,
 	}
-	
+
 	if err := fb.loadEntries(); err != nil {
 		return nil, err
 	}
-	
+
 	return fb, nil
 }
 
 // loadEntries reads the current directory's contents
 func (fb *FileBrowser) loadEntries() error {
 	entries := []FileEntry{}
-	
+
 	// Add parent directory entry if not at root
 	if fb.currentDir != "/" && fb.currentDir != "." {
 		entries = append(entries, FileEntry{
@@ -57,27 +57,27 @@ func (fb *FileBrowser) loadEntries() error {
 			IsDir: true,
 		})
 	}
-	
+
 	// Read directory contents
 	dirEntries, err := os.ReadDir(fb.currentDir)
 	if err != nil {
 		return err
 	}
-	
+
 	// Convert to FileEntry
 	for _, entry := range dirEntries {
 		// Skip hidden files
 		if strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
-		
+
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
-		
+
 		fullPath := filepath.Join(fb.currentDir, entry.Name())
-		
+
 		entries = append(entries, FileEntry{
 			Name:  entry.Name(),
 			Path:  fullPath,
@@ -85,7 +85,7 @@ func (fb *FileBrowser) loadEntries() error {
 			Size:  info.Size(),
 		})
 	}
-	
+
 	// Sort: directories first, then files, alphabetically
 	sort.Slice(entries, func(i, j int) bool {
 		if entries[i].IsDir != entries[j].IsDir {
@@ -93,11 +93,11 @@ func (fb *FileBrowser) loadEntries() error {
 		}
 		return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
 	})
-	
+
 	fb.entries = entries
 	fb.selectedIndex = 0
 	fb.viewOffset = 0
-	
+
 	return nil
 }
 
@@ -124,9 +124,9 @@ func (fb *FileBrowser) Enter() (string, bool, error) {
 	if len(fb.entries) == 0 {
 		return "", false, nil
 	}
-	
+
 	selected := fb.entries[fb.selectedIndex]
-	
+
 	if selected.IsDir {
 		fb.currentDir = selected.Path
 		if err := fb.loadEntries(); err != nil {
@@ -134,12 +134,12 @@ func (fb *FileBrowser) Enter() (string, bool, error) {
 		}
 		return "", false, nil
 	}
-	
+
 	// File selected - return it if it's a .log.gz file
 	if strings.HasSuffix(selected.Name, ".log.gz") {
 		return selected.Path, true, nil
 	}
-	
+
 	return "", false, nil
 }
 
@@ -193,17 +193,17 @@ func (fb *FileBrowser) GoToDir(dir string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Check if directory exists
 	info, err := os.Stat(absDir)
 	if err != nil {
 		return err
 	}
-	
+
 	if !info.IsDir() {
 		return fs.ErrNotExist
 	}
-	
+
 	fb.currentDir = absDir
 	return fb.loadEntries()
 }
@@ -226,11 +226,11 @@ func (fb *FileBrowser) AdjustViewOffset(maxVisible int) {
 	selectedIdx := fb.selectedIndex
 	startIdx := fb.viewOffset
 	endIdx := startIdx + maxVisible
-	
+
 	if endIdx > len(fb.entries) {
 		endIdx = len(fb.entries)
 	}
-	
+
 	// Adjust view offset if selected is out of view
 	if selectedIdx < startIdx {
 		fb.viewOffset = selectedIdx
