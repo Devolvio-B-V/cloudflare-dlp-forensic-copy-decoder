@@ -29,18 +29,19 @@ func TestHandleKeyPress_PreviewToggleRawAndBack(t *testing.T) {
 
 	// Toggle raw mode with 'r'
 	mm, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")})
-	m = mm.(Model)
-	if !m.showRaw {
+	mmModel := mm.(Model)
+	if !mmModel.showRaw {
 		t.Fatalf("expected showRaw to be true after pressing 'r')")
 	}
+	m = mmModel
 
 	// Go back to file browser with 'o'
 	mm, _ = m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("o")})
-	m = mm.(Model)
-	if m.mode != ModeFileBrowser {
-		t.Fatalf("expected mode %v after pressing 'o', got %v", ModeFileBrowser, m.mode)
+	mmModel2 := mm.(Model)
+	if mmModel2.mode != ModeFileBrowser {
+		t.Fatalf("expected mode %v after pressing 'o', got %v", ModeFileBrowser, mmModel2.mode)
 	}
-	if m.result != nil {
+	if mmModel2.result != nil {
 		t.Fatalf("expected result to be nil after returning to file browser")
 	}
 }
@@ -62,7 +63,7 @@ func TestHandleKeyPress_FileBrowser_MoveDown(t *testing.T) {
 
 	// Move down
 	mm, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
-	m = mm.(Model)
+	_ = mm.(Model)
 	if fb.selectedIndex != 1 {
 		t.Fatalf("expected selectedIndex 1 after 'j', got %d", fb.selectedIndex)
 	}
@@ -120,8 +121,7 @@ func TestModel_ExportFile_WritesFiles(t *testing.T) {
 	}
 	logPath := decoder.GetLogJSONFilename(m.inputPath)
 	if _, err := os.Stat(logPath); err == nil {
-		// If logPath is in tmp dir it should exist; if not, ensure removal
-		// but don't fail if it doesn't exist in other environments
+		_ = logPath
 	}
 }
 
