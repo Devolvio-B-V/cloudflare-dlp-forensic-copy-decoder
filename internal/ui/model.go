@@ -28,18 +28,20 @@ const (
 
 // Model represents the application state
 type Model struct {
-	mode          Mode
-	inputPath     string
-	result        *decoder.DecodeResult
-	err           error
-	showRaw       bool
-	exportPath    string
-	statusMessage string
-	width         int
-	height        int
-	fileBrowser   *FileBrowser
-	viewport      viewport.Model
-	ready         bool
+	mode             Mode
+	inputPath        string
+	results          []*decoder.DecodeResult
+	currentResultIdx int
+	result           *decoder.DecodeResult
+	err              error
+	showRaw          bool
+	exportPath       string
+	statusMessage    string
+	width            int
+	height           int
+	fileBrowser      *FileBrowser
+	viewport         viewport.Model
+	ready            bool
 }
 
 // NewModel creates a new TUI model
@@ -108,9 +110,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, nil
 	case decodeSuccessMsg:
-		m.result = msg.result
+		m.results = msg.results
+		m.currentResultIdx = 0
+		m.result = m.results[0]
 		m.mode = ModePreview
-		m.statusMessage = "Decoded successfully"
+		if len(m.results) == 1 {
+			m.statusMessage = "Decoded successfully"
+		} else {
+			m.statusMessage = fmt.Sprintf("Decoded successfully (%d payloads)", len(m.results))
+		}
 
 		// Set viewport content
 		content := string(m.result.Payload)
@@ -213,6 +221,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			// Go back to file browser
 			m.mode = ModeFileBrowser
 			m.statusMessage = "Select a file to decode"
+			m.results = nil
+			m.currentResultIdx = 0
 			m.result = nil
 		case "j", "down":
 			m.viewport.ScrollDown(1)
@@ -226,6 +236,22 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.viewport.GotoTop()
 		case "G":
 			m.viewport.GotoBottom()
+		case "n":
+			// Navigate to next payload (multi-payload files)
+			if len(m.results) > 1 && m.currentResultIdx < len(m.results)-1 {
+				m.currentResultIdx++
+				m.result = m.results[m.currentResultIdx]
+				m.viewport.SetContent(string(m.result.Payload))
+				m.viewport.GotoTop()
+			}
+		case "p":
+			// Navigate to previous payload (multi-payload files)
+			if len(m.results) > 1 && m.currentResultIdx > 0 {
+				m.currentResultIdx--
+				m.result = m.results[m.currentResultIdx]
+				m.viewport.SetContent(string(m.result.Payload))
+				m.viewport.GotoTop()
+			}
 		}
 
 	case ModeExport:
@@ -253,6 +279,8 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "o", "b":
 			m.mode = ModeFileBrowser
 			m.err = nil
+			m.results = nil
+			m.result = nil
 			m.statusMessage = "Select a file to decode"
 		}
 	}
@@ -263,7 +291,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // Messages
 
 type decodeSuccessMsg struct {
-	result *decoder.DecodeResult
+	results []*decoder.DecodeResult
 }
 
 type decodeErrorMsg struct {
@@ -288,17 +316,17 @@ func (m Model) decode() tea.Cmd {
 			return decodeErrorMsg{err: err}
 		}
 
-		// Decode the file
+		// Decode the file (supports single and multi-payload files)
 		opts := decoder.DecodeOptions{
 			TryText: false,
 			Verbose: true,
 		}
-		result, err := decoder.DecodeLogFile(reader, opts)
+		results, err := decoder.DecodeLogFileMulti(reader, opts)
 		if err != nil {
 			return decodeErrorMsg{err: err}
 		}
 
-		return decodeSuccessMsg{result: result}
+		return decodeSuccessMsg{results: results}
 	}
 }
 
@@ -306,8 +334,12 @@ func (m Model) exportFile() tea.Cmd {
 	return func() tea.Msg {
 		path := m.exportPath
 		if path == "" {
-			// Use default path
-			path = decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)
+			// Use default path; use numbered names for multi-payload files.
+			if len(m.results) > 1 {
+				path = decoder.GetOutputFilenameN(m.inputPath, m.result.IsJSON, m.currentResultIdx+1)
+			} else {
+				path = decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)
+			}
 		}
 
 		// Write the payload
@@ -316,7 +348,12 @@ func (m Model) exportFile() tea.Cmd {
 		}
 
 		// Also write the log JSON
-		logPath := decoder.GetLogJSONFilename(m.inputPath)
+		var logPath string
+		if len(m.results) > 1 {
+			logPath = decoder.GetLogJSONFilenameN(m.inputPath, m.currentResultIdx+1)
+		} else {
+			logPath = decoder.GetLogJSONFilename(m.inputPath)
+		}
 		if err := utils.WriteFile(logPath, []byte(m.result.LogJSON), true); err != nil {
 			return exportErrorMsg{err: err}
 		}

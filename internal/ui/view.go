@@ -179,6 +179,9 @@ func (m Model) viewPreview() string {
 		truncate(m.inputPath, 40),
 		m.result.ContentType,
 	)
+	if len(m.results) > 1 {
+		metaLine += fmt.Sprintf(" │ Payload %d/%d", m.currentResultIdx+1, len(m.results))
+	}
 	if m.result.IsJSON {
 		metaLine += " │ JSON"
 	} else if m.result.IsText {
@@ -197,9 +200,11 @@ func (m Model) viewPreview() string {
 	b.WriteString("\n")
 
 	// Status bar with keybindings
-	statusBar := statusBarStyle.Width(m.width).Render(
-		" ↑↓/jk: scroll │ d/u: page │ g/G: top/bottom │ s: save │ b: back │ q: quit",
-	)
+	statusKeys := " ↑↓/jk: scroll │ d/u: page │ g/G: top/bottom │ s: save │ b: back │ q: quit"
+	if len(m.results) > 1 {
+		statusKeys = " ↑↓/jk: scroll │ d/u: page │ n/p: next/prev payload │ s: save │ b: back │ q: quit"
+	}
+	statusBar := statusBarStyle.Width(m.width).Render(statusKeys)
 	b.WriteString(statusBar)
 
 	if m.statusMessage != "" {
@@ -221,7 +226,12 @@ func (m Model) viewExport() string {
 	b.WriteString(title)
 	b.WriteString("\n\n")
 
-	defaultPath := decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)
+	var defaultPath string
+	if len(m.results) > 1 {
+		defaultPath = decoder.GetOutputFilenameN(m.inputPath, m.result.IsJSON, m.currentResultIdx+1)
+	} else {
+		defaultPath = decoder.GetOutputFilename(m.inputPath, m.result.IsJSON)
+	}
 	b.WriteString(fmt.Sprintf("Default path: %s\n", helpStyle.Render(defaultPath)))
 	b.WriteString("Custom path: ")
 
