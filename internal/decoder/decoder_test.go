@@ -286,6 +286,9 @@ func TestGetOutputFilename(t *testing.T) {
 		{"test.log.gz", false, "test.payload.txt"},
 		{"path/to/test.log.gz", true, "path/to/test.payload.json"},
 		{"test", true, "test.payload.json"},
+		{"test.json", true, "test.payload.json"},
+		{"test.json", false, "test.payload.txt"},
+		{"path/to/20260407T141820Z_abc123.json", true, "path/to/20260407T141820Z_abc123.payload.json"},
 	}
 
 	for _, tt := range tests {
@@ -304,6 +307,8 @@ func TestGetLogJSONFilename(t *testing.T) {
 		{"test.log.gz", "test.log.json"},
 		{"path/to/test.log.gz", "path/to/test.log.json"},
 		{"test", "test.log.json"},
+		{"test.json", "test.log.json"},
+		{"path/to/20260407T141820Z_abc123.json", "path/to/20260407T141820Z_abc123.log.json"},
 	}
 
 	for _, tt := range tests {
@@ -311,6 +316,91 @@ func TestGetLogJSONFilename(t *testing.T) {
 		if result != tt.expected {
 			t.Errorf("GetLogJSONFilename(%q) = %q, want %q", tt.input, result, tt.expected)
 		}
+	}
+}
+
+// createTestLogFileJSON creates a plain (non-gzipped) JSON log file for testing
+func createTestLogFileJSON(t *testing.T, payload string, contentType string, contentEncoding string, gzipPayload bool) []byte {
+	t.Helper()
+
+	payloadBytes := []byte(payload)
+	if gzipPayload {
+		var buf bytes.Buffer
+		gw := gzip.NewWriter(&buf)
+		if _, err := gw.Write(payloadBytes); err != nil {
+			t.Fatalf("failed to gzip payload: %v", err)
+		}
+		if err := gw.Close(); err != nil {
+			t.Fatalf("failed to close gzip writer: %v", err)
+		}
+		payloadBytes = buf.Bytes()
+	}
+
+	entry := LogEntry{
+		Payload: base64.StdEncoding.EncodeToString(payloadBytes),
+		Headers: map[string]string{
+			"content-type": contentType,
+		},
+	}
+	if contentEncoding != "" {
+		entry.Headers["content-encoding"] = contentEncoding
+	}
+
+	logJSON, err := json.Marshal(entry)
+	if err != nil {
+		t.Fatalf("failed to marshal log entry: %v", err)
+	}
+
+	return logJSON
+}
+
+func TestDecodeLogFile_PlainJSONInput_JSON(t *testing.T) {
+	payload := `{"key": "value", "number": 42}`
+	logData := createTestLogFileJSON(t, payload, "application/json", "", false)
+
+	opts := DecodeOptions{}
+	result, err := DecodeLogFile(bytes.NewReader(logData), opts)
+	if err != nil {
+		t.Fatalf("DecodeLogFile (plain JSON input) failed: %v", err)
+	}
+
+	if !result.IsJSON {
+		t.Error("Expected IsJSON to be true")
+	}
+	if result.IsText {
+		t.Error("Expected IsText to be false")
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(result.Payload, &decoded); err != nil {
+		t.Fatalf("Decoded payload is not valid JSON: %v", err)
+	}
+	if decoded["key"] != "value" {
+		t.Errorf("Expected key=value, got %v", decoded["key"])
+	}
+	if decoded["number"].(float64) != 42 {
+		t.Errorf("Expected number=42, got %v", decoded["number"])
+	}
+}
+
+func TestDecodeLogFile_PlainJSONInput_Text(t *testing.T) {
+	payload := "Hello from plain JSON input!"
+	logData := createTestLogFileJSON(t, payload, "text/plain", "", false)
+
+	opts := DecodeOptions{}
+	result, err := DecodeLogFile(bytes.NewReader(logData), opts)
+	if err != nil {
+		t.Fatalf("DecodeLogFile (plain JSON input, text payload) failed: %v", err)
+	}
+
+	if result.IsJSON {
+		t.Error("Expected IsJSON to be false")
+	}
+	if !result.IsText {
+		t.Error("Expected IsText to be true")
+	}
+	if string(result.Payload) != payload {
+		t.Errorf("Expected payload %q, got %q", payload, string(result.Payload))
 	}
 }
 

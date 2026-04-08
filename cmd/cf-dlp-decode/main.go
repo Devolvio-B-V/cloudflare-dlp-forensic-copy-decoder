@@ -112,8 +112,8 @@ func main() {
 
 	// Check input file extension (unless reading from stdin) -- only for non-TUI runs
 	if !*useTUI {
-		if *inputPath != "-" && !strings.HasSuffix(*inputPath, ".log.gz") {
-			fmt.Fprintf(os.Stderr, "ERROR: Input must end with .log.gz (got: %s)\n", *inputPath)
+		if *inputPath != "-" && !strings.HasSuffix(*inputPath, ".log.gz") && !strings.HasSuffix(*inputPath, ".json") {
+			fmt.Fprintf(os.Stderr, "ERROR: Input must end with .log.gz or .json (got: %s)\n", *inputPath)
 			os.Exit(1)
 		}
 	}
@@ -200,10 +200,11 @@ func printHelp() {
 
 Usage:
   cf-dlp-decode [OPTIONS] <input.log.gz>
+  cf-dlp-decode [OPTIONS] <input.json>
   cf-dlp-decode --tui <input.log.gz>
 
 What it does:
-  1) Decompresses <input.log.gz> -> <input.log.json>
+  1) Reads <input.log.gz> (gzip-compressed) or <input.json> (plain JSON) -> <input.log.json>
   2) Pretty-prints <input.log.json> (jq equivalent)
   3) Decodes .Payload based on:
        - .Headers.content-type starts with "application/json"    => base64 -> JSON
@@ -218,7 +219,7 @@ Outputs:
   <input.payload.txt>  (decoded payload for text content)
 
 Options:
-  --input PATH       Input .log.gz file (or - for stdin)
+  --input PATH       Input .log.gz or .json file (or - for stdin)
   --output PATH      Output file path (default: auto-generated based on input)
   --tui              Launch interactive TUI mode
   --try-text         Attempt text decoding even if content-type is not supported
@@ -228,8 +229,11 @@ Options:
   --version          Show version information
 
 Examples:
-  # Basic usage (non-interactive)
+  # Basic usage (non-interactive) with gzip input
   cf-dlp-decode input.log.gz
+
+  # Basic usage with plain JSON input
+  cf-dlp-decode input.json
 
   # Interactive TUI mode
   cf-dlp-decode --tui input.log.gz

@@ -52,19 +52,39 @@ type DecodeOptions struct {
 	Verbose bool
 }
 
-// DecodeLogFile decodes a gzip-compressed DLP forensic log file.
-// It decompresses, parses JSON, and decodes the payload according to content-type headers.
-func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error) {
-	// Step 1: Decompress the gzip data
-	gzReader, err := gzip.NewReader(gzipData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+// DecodeLogFile decodes a DLP forensic log file (gzip-compressed or plain JSON).
+// It auto-detects the format by inspecting the first two bytes for gzip magic numbers.
+// It parses JSON and decodes the payload according to content-type headers.
+func DecodeLogFile(input io.Reader, opts DecodeOptions) (*DecodeResult, error) {
+	// Peek at the first two bytes to detect gzip vs plain JSON
+	header := make([]byte, 2)
+	n, err := io.ReadFull(input, header)
+	if err != nil && err != io.ErrUnexpectedEOF {
+		return nil, fmt.Errorf("failed to read input: %w", err)
 	}
-	defer func() { _ = gzReader.Close() }()
 
-	logData, err := io.ReadAll(gzReader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decompress log file: %w", err)
+	// Reconstruct the full reader by prepending the bytes we already read
+	fullReader := io.MultiReader(bytes.NewReader(header[:n]), input)
+
+	var logData []byte
+	if n >= 2 && header[0] == gzipMagic1 && header[1] == gzipMagic2 {
+		// Step 1a: Decompress the gzip data
+		gzReader, err := gzip.NewReader(fullReader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		defer func() { _ = gzReader.Close() }()
+
+		logData, err = io.ReadAll(gzReader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decompress log file: %w", err)
+		}
+	} else {
+		// Step 1b: Read plain JSON directly
+		logData, err = io.ReadAll(fullReader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read log file: %w", err)
+		}
 	}
 
 	// Step 2: Parse the JSON log entry
@@ -239,8 +259,11 @@ func validateJSON(data []byte) error {
 
 // GetOutputFilename returns the appropriate output filename based on content type
 func GetOutputFilename(inputPath string, isJSON bool) string {
-	// Remove .log.gz extension
+	// Remove known extensions
 	baseName := strings.TrimSuffix(inputPath, ".log.gz")
+	if baseName == inputPath {
+		baseName = strings.TrimSuffix(inputPath, ".json")
+	}
 
 	// Return appropriate extension
 	if isJSON {
@@ -252,5 +275,8 @@ func GetOutputFilename(inputPath string, isJSON bool) string {
 // GetLogJSONFilename returns the log JSON output filename
 func GetLogJSONFilename(inputPath string) string {
 	baseName := strings.TrimSuffix(inputPath, ".log.gz")
+	if baseName == inputPath {
+		baseName = strings.TrimSuffix(inputPath, ".json")
+	}
 	return baseName + ".log.json"
 }
