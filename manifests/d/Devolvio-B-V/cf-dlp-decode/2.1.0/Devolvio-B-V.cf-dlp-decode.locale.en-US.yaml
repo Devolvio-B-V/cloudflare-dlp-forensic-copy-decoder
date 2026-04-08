@@ -5,7 +5,7 @@ PackageIdentifier: Devolvio-B-V.cf-dlp-decode
 PackageVersion: 2.1.0
 PackageLocale: en-US
 Publisher: SALT Cyber Security
-PublisherUrl: https://salt-security.com
+PublisherUrl: https://github.com/Devolvio-B-V
 PublisherSupportUrl: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/issues/new/choose
 Author: Thomas van den Nieuwenhoff
 PackageName: Cloudflare DLP Forensic Copy Decoder
