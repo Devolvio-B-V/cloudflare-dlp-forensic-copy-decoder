@@ -23,7 +23,6 @@ When Cloudflare DLP captures sensitive data, it creates forensic copies stored a
 3. **Payload Decoding**: Base64 decodes the payload
 4. **Gzip Handling**: Automatically decompresses gzipped payloads
 5. **Smart Detection**: Intelligently detects and processes content based on headers
-6. **Multi-Payload**: Handles files with multiple concatenated JSON objects (e.g. when Cloudflare batches payloads at the same timestamp)
 
 ## 📦 Installation
 
