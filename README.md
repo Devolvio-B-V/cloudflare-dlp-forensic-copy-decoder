@@ -13,7 +13,6 @@ A powerful command-line tool and interactive TUI for decoding and extracting Clo
 - 🔄 **Full Feature Parity**: 100% compatible with the original shell script
 - ✅ **Well Tested**: Comprehensive unit tests with high coverage
 - 🎯 **Easy to Use**: Simple CLI for scripting and automation
-- 🗂️ **Multi-Payload Support**: Handles `.log.gz` files containing multiple concatenated JSON payloads
 
 ### What It Does
 
