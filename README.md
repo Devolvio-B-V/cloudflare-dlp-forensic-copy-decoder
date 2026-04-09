@@ -13,6 +13,7 @@ A powerful command-line tool and interactive TUI for decoding and extracting Clo
 - 🔄 **Full Feature Parity**: 100% compatible with the original shell script
 - ✅ **Well Tested**: Comprehensive unit tests with high coverage
 - 🎯 **Easy to Use**: Simple CLI for scripting and automation
+- 🗂️ **Multi-Payload Support**: Handles `.log.gz` files containing multiple concatenated JSON payloads
 
 ### What It Does
 
@@ -23,6 +24,7 @@ When Cloudflare DLP captures sensitive data, it creates forensic copies stored a
 3. **Payload Decoding**: Base64 decodes the payload
 4. **Gzip Handling**: Automatically decompresses gzipped payloads
 5. **Smart Detection**: Intelligently detects and processes content based on headers
+6. **Multi-Payload**: Handles files with multiple concatenated JSON objects (e.g. when Cloudflare batches payloads at the same timestamp)
 
 ## 📦 Installation
 
@@ -110,6 +112,7 @@ Provide a filename (positional argument or `--input`) to run the tool in non-int
 - `↑↓` / `j/k` - Scroll up/down
 - `d` / `u` - Page down/up (half page)
 - `g` / `G` - Go to top/bottom
+- `n` / `p` - Next/previous payload (when file contains multiple payloads)
 - `s` / `e` - Save/Export decoded payload
 - `b` - Back to file browser
 - `q` - Quit
@@ -161,6 +164,20 @@ Given an input file `example.log.gz`, the tool produces:
 | `example.log.json` | Decompressed and formatted log with headers and metadata |
 | `example.payload.json` | Decoded payload (for JSON content types) |
 | `example.payload.txt` | Decoded payload (for text/form-data content types) |
+
+### Multi-Payload Files
+
+When a `.log.gz` file contains multiple concatenated JSON objects (e.g. when Cloudflare batches payloads at the same timestamp), the tool writes numbered output files:
+
+| File | Description |
+|------|-------------|
+| `example.1.log.json` | Log metadata for payload 1 |
+| `example.1.payload.json` | Decoded payload 1 (JSON) |
+| `example.2.log.json` | Log metadata for payload 2 |
+| `example.2.payload.json` | Decoded payload 2 (JSON) |
+| … | … |
+
+> **Note:** When processing a multi-payload file, the `--output` flag is ignored and a warning is printed. Use numbered output files instead.
 
 ## 🔍 Supported Content Types
 
