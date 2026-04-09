@@ -66,8 +66,8 @@ func TestModel_DecodeCommand_Succeeds(t *testing.T) {
 	msg := cmd()
 	switch v := msg.(type) {
 	case decodeSuccessMsg:
-		if v.result == nil {
-			t.Fatalf("expected result in decodeSuccessMsg")
+		if len(v.results) == 0 {
+			t.Fatalf("expected results in decodeSuccessMsg")
 		}
 	case decodeErrorMsg:
 		t.Fatalf("decode failed: %v", v.err)
@@ -87,7 +87,7 @@ func TestModel_Update_WindowSizeAndDecodeMsg(t *testing.T) {
 
 	// simulate decode success
 	res := &decoder.DecodeResult{Payload: []byte("x"), IsText: true}
-	m2Iface, _ := mm.Update(decodeSuccessMsg{result: res})
+	m2Iface, _ := mm.Update(decodeSuccessMsg{results: []*decoder.DecodeResult{res}})
 	mm2 := m2Iface.(Model)
 	if mm2.mode != ModePreview {
 		t.Fatalf("expected ModePreview, got %v", mm2.mode)

@@ -52,9 +52,9 @@ type DecodeOptions struct {
 	Verbose bool
 }
 
-// DecodeLogFile decodes a gzip-compressed DLP forensic log file.
-// It decompresses, parses JSON, and decodes the payload according to content-type headers.
-func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error) {
+// DecodeLogFileMulti decodes a gzip-compressed DLP forensic log file that may contain
+// one or more concatenated JSON objects. It returns one DecodeResult per JSON object found.
+func DecodeLogFileMulti(gzipData io.Reader, opts DecodeOptions) ([]*DecodeResult, error) {
 	// Step 1: Decompress the gzip data
 	gzReader, err := gzip.NewReader(gzipData)
 	if err != nil {
@@ -62,24 +62,57 @@ func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error
 	}
 	defer func() { _ = gzReader.Close() }()
 
-	logData, err := io.ReadAll(gzReader)
+	// Step 2: Stream-parse JSON objects; a single file may contain multiple
+	// concatenated top-level objects (one per forensic copy payload).
+	dec := json.NewDecoder(gzReader)
+
+	var results []*DecodeResult
+	for dec.More() {
+		// Capture each top-level object as raw bytes so we can both unmarshal
+		// it into a LogEntry and pretty-print it faithfully.
+		var raw json.RawMessage
+		if err := dec.Decode(&raw); err != nil {
+			return nil, fmt.Errorf("failed to parse log JSON: %w", err)
+		}
+
+		var entry LogEntry
+		if err := json.Unmarshal(raw, &entry); err != nil {
+			return nil, fmt.Errorf("failed to parse log JSON: %w", err)
+		}
+
+		result, err := decodeEntryPayload(entry, raw, opts)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+
+	if len(results) == 0 {
+		return nil, fmt.Errorf("no JSON objects found in log file")
+	}
+
+	return results, nil
+}
+
+// DecodeLogFile decodes a gzip-compressed DLP forensic log file.
+// It decompresses, parses JSON, and decodes the payload according to content-type headers.
+// For files that contain multiple concatenated JSON objects, use DecodeLogFileMulti instead.
+func DecodeLogFile(gzipData io.Reader, opts DecodeOptions) (*DecodeResult, error) {
+	results, err := DecodeLogFileMulti(gzipData, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress log file: %w", err)
+		return nil, err
 	}
+	return results[0], nil
+}
 
-	// Step 2: Parse the JSON log entry
-	var entry LogEntry
-	if err := json.Unmarshal(logData, &entry); err != nil {
-		return nil, fmt.Errorf("failed to parse log JSON: %w", err)
-	}
-
-	// Step 3: Pretty-print the log JSON
+// decodeEntryPayload builds a DecodeResult from a parsed LogEntry and its raw JSON bytes.
+func decodeEntryPayload(entry LogEntry, rawJSON []byte, opts DecodeOptions) (*DecodeResult, error) {
+	// Pretty-print the log JSON
 	var prettyBuf bytes.Buffer
-	if err := json.Indent(&prettyBuf, logData, "", "  "); err != nil {
+	if err := json.Indent(&prettyBuf, rawJSON, "", "  "); err != nil {
 		return nil, fmt.Errorf("failed to pretty-print JSON: %w", err)
 	}
 
-	// Step 4: Decode the payload
 	result := &DecodeResult{
 		LogJSON: prettyBuf.String(),
 	}
@@ -249,8 +282,23 @@ func GetOutputFilename(inputPath string, isJSON bool) string {
 	return baseName + ".payload.txt"
 }
 
+// GetOutputFilenameN returns the numbered output filename for multi-payload files (1-based index).
+func GetOutputFilenameN(inputPath string, isJSON bool, n int) string {
+	baseName := strings.TrimSuffix(inputPath, ".log.gz")
+	if isJSON {
+		return fmt.Sprintf("%s.%d.payload.json", baseName, n)
+	}
+	return fmt.Sprintf("%s.%d.payload.txt", baseName, n)
+}
+
 // GetLogJSONFilename returns the log JSON output filename
 func GetLogJSONFilename(inputPath string) string {
 	baseName := strings.TrimSuffix(inputPath, ".log.gz")
 	return baseName + ".log.json"
+}
+
+// GetLogJSONFilenameN returns the numbered log JSON output filename for multi-payload files (1-based index).
+func GetLogJSONFilenameN(inputPath string, n int) string {
+	baseName := strings.TrimSuffix(inputPath, ".log.gz")
+	return fmt.Sprintf("%s.%d.log.json", baseName, n)
 }

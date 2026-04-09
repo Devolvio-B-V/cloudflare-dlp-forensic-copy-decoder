@@ -276,6 +276,186 @@ func TestDecodeLogFile_InvalidJSON(t *testing.T) {
 	}
 }
 
+// createMultiPayloadLogFile creates a gzipped file with multiple concatenated JSON log entries.
+func createMultiPayloadLogFile(t *testing.T, entries []struct {
+	payload     string
+	contentType string
+}) []byte {
+	t.Helper()
+
+	var jsonBuf bytes.Buffer
+	for _, e := range entries {
+		entry := LogEntry{
+			Payload: base64.StdEncoding.EncodeToString([]byte(e.payload)),
+			Headers: map[string]string{"content-type": e.contentType},
+		}
+		logJSON, err := json.Marshal(entry)
+		if err != nil {
+			t.Fatalf("failed to marshal log entry: %v", err)
+		}
+		jsonBuf.Write(logJSON)
+		jsonBuf.WriteString("\n")
+	}
+
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	if _, err := gw.Write(jsonBuf.Bytes()); err != nil {
+		t.Fatalf("failed to gzip log file: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("failed to close gzip writer: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func TestDecodeLogFileMulti_SinglePayload(t *testing.T) {
+	payload := `{"key": "value"}`
+	logData := createTestLogFile(t, payload, "application/json", "", false)
+
+	opts := DecodeOptions{}
+	results, err := DecodeLogFileMulti(bytes.NewReader(logData), opts)
+	if err != nil {
+		t.Fatalf("DecodeLogFileMulti failed: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if !results[0].IsJSON {
+		t.Error("expected IsJSON to be true")
+	}
+}
+
+func TestDecodeLogFileMulti_MultiplePayloads(t *testing.T) {
+	entries := []struct {
+		payload     string
+		contentType string
+	}{
+		{`{"index": 1, "data": "first"}`, "application/json"},
+		{`{"index": 2, "data": "second"}`, "application/json"},
+		{`{"index": 3, "data": "third"}`, "application/json"},
+	}
+
+	logData := createMultiPayloadLogFile(t, entries)
+
+	opts := DecodeOptions{}
+	results, err := DecodeLogFileMulti(bytes.NewReader(logData), opts)
+	if err != nil {
+		t.Fatalf("DecodeLogFileMulti failed: %v", err)
+	}
+
+	if len(results) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(results))
+	}
+
+	for i, result := range results {
+		if !result.IsJSON {
+			t.Errorf("result[%d]: expected IsJSON to be true", i)
+		}
+		var decoded map[string]interface{}
+		if err := json.Unmarshal(result.Payload, &decoded); err != nil {
+			t.Fatalf("result[%d]: payload is not valid JSON: %v", i, err)
+		}
+		if int(decoded["index"].(float64)) != i+1 {
+			t.Errorf("result[%d]: expected index=%d, got %v", i, i+1, decoded["index"])
+		}
+	}
+}
+
+func TestDecodeLogFileMulti_MixedContentTypes(t *testing.T) {
+	entries := []struct {
+		payload     string
+		contentType string
+	}{
+		{`{"type": "json"}`, "application/json"},
+		{"hello text", "text/plain"},
+	}
+
+	logData := createMultiPayloadLogFile(t, entries)
+
+	opts := DecodeOptions{}
+	results, err := DecodeLogFileMulti(bytes.NewReader(logData), opts)
+	if err != nil {
+		t.Fatalf("DecodeLogFileMulti failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("expected 2 results, got %d", len(results))
+	}
+
+	if !results[0].IsJSON {
+		t.Error("expected results[0].IsJSON to be true")
+	}
+	if !results[1].IsText {
+		t.Error("expected results[1].IsText to be true")
+	}
+	if string(results[1].Payload) != "hello text" {
+		t.Errorf("expected text payload 'hello text', got %q", string(results[1].Payload))
+	}
+}
+
+// DecodeLogFile should return the first payload from a multi-payload file.
+func TestDecodeLogFile_MultiPayload_ReturnsFirst(t *testing.T) {
+	entries := []struct {
+		payload     string
+		contentType string
+	}{
+		{"first payload", "text/plain"},
+		{"second payload", "text/plain"},
+	}
+
+	logData := createMultiPayloadLogFile(t, entries)
+
+	opts := DecodeOptions{}
+	result, err := DecodeLogFile(bytes.NewReader(logData), opts)
+	if err != nil {
+		t.Fatalf("DecodeLogFile failed: %v", err)
+	}
+
+	if string(result.Payload) != "first payload" {
+		t.Errorf("expected first payload, got %q", string(result.Payload))
+	}
+}
+
+func TestGetOutputFilenameN(t *testing.T) {
+	tests := []struct {
+		input    string
+		isJSON   bool
+		n        int
+		expected string
+	}{
+		{"test.log.gz", true, 1, "test.1.payload.json"},
+		{"test.log.gz", false, 2, "test.2.payload.txt"},
+		{"path/to/test.log.gz", true, 3, "path/to/test.3.payload.json"},
+	}
+
+	for _, tt := range tests {
+		result := GetOutputFilenameN(tt.input, tt.isJSON, tt.n)
+		if result != tt.expected {
+			t.Errorf("GetOutputFilenameN(%q, %v, %d) = %q, want %q", tt.input, tt.isJSON, tt.n, result, tt.expected)
+		}
+	}
+}
+
+func TestGetLogJSONFilenameN(t *testing.T) {
+	tests := []struct {
+		input    string
+		n        int
+		expected string
+	}{
+		{"test.log.gz", 1, "test.1.log.json"},
+		{"test.log.gz", 2, "test.2.log.json"},
+		{"path/to/test.log.gz", 3, "path/to/test.3.log.json"},
+	}
+
+	for _, tt := range tests {
+		result := GetLogJSONFilenameN(tt.input, tt.n)
+		if result != tt.expected {
+			t.Errorf("GetLogJSONFilenameN(%q, %d) = %q, want %q", tt.input, tt.n, result, tt.expected)
+		}
+	}
+}
+
 func TestGetOutputFilename(t *testing.T) {
 	tests := []struct {
 		input    string

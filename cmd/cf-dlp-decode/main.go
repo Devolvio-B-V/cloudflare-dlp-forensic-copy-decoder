@@ -159,38 +159,62 @@ func runCLI(inputPath, outputPath string, tryText, overwrite, verbose bool) erro
 		return fmt.Errorf("failed to read input: %w", err)
 	}
 
-	// Decode
+	// Decode (supports single and multi-payload files)
 	opts := decoder.DecodeOptions{
 		TryText: tryText,
 		Verbose: verbose,
 	}
 
-	result, err := decoder.DecodeLogFile(reader, opts)
+	results, err := decoder.DecodeLogFileMulti(reader, opts)
 	if err != nil {
 		return err
 	}
 
-	// Determine output paths
-	logJSONPath := decoder.GetLogJSONFilename(inputPath)
-	payloadPath := outputPath
-	if payloadPath == "" {
-		payloadPath = decoder.GetOutputFilename(inputPath, result.IsJSON)
+	if len(results) == 1 {
+		// Single payload: use the original (un-numbered) output filenames.
+		result := results[0]
+
+		logJSONPath := decoder.GetLogJSONFilename(inputPath)
+		payloadPath := outputPath
+		if payloadPath == "" {
+			payloadPath = decoder.GetOutputFilename(inputPath, result.IsJSON)
+		}
+
+		if err := utils.WriteFile(logJSONPath, []byte(result.LogJSON), overwrite); err != nil {
+			return fmt.Errorf("failed to write log JSON: %w", err)
+		}
+		if err := utils.WriteFile(payloadPath, result.Payload, overwrite); err != nil {
+			return fmt.Errorf("failed to write payload: %w", err)
+		}
+
+		fmt.Println("Wrote:")
+		fmt.Printf("  %s\n", logJSONPath)
+		fmt.Printf("  %s\n", payloadPath)
+		return nil
 	}
 
-	// Write log JSON
-	if err := utils.WriteFile(logJSONPath, []byte(result.LogJSON), overwrite); err != nil {
-		return fmt.Errorf("failed to write log JSON: %w", err)
+	// Multiple payloads: use numbered output filenames (1-based).
+	// The --output flag is ignored when there are multiple payloads.
+	if outputPath != "" {
+		fmt.Fprintf(os.Stderr, "WARNING: --output is ignored when the input contains multiple payloads\n")
 	}
 
-	// Write payload
-	if err := utils.WriteFile(payloadPath, result.Payload, overwrite); err != nil {
-		return fmt.Errorf("failed to write payload: %w", err)
-	}
+	fmt.Printf("Wrote (%d payloads):\n", len(results))
+	for i, result := range results {
+		n := i + 1
+		logJSONPath := decoder.GetLogJSONFilenameN(inputPath, n)
+		payloadPath := decoder.GetOutputFilenameN(inputPath, result.IsJSON, n)
 
-	// Print success message
-	fmt.Println("Wrote:")
-	fmt.Printf("  %s\n", logJSONPath)
-	fmt.Printf("  %s\n", payloadPath)
+		if err := utils.WriteFile(logJSONPath, []byte(result.LogJSON), overwrite); err != nil {
+			return fmt.Errorf("payload %d: failed to write log JSON: %w", n, err)
+		}
+		if err := utils.WriteFile(payloadPath, result.Payload, overwrite); err != nil {
+			return fmt.Errorf("payload %d: failed to write payload: %w", n, err)
+		}
+
+		fmt.Printf("  [%d] %s\n", n, logJSONPath)
+		fmt.Printf("  [%d] %s\n", n, payloadPath)
+	}
 
 	return nil
 }
