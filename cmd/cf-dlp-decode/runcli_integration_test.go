@@ -125,3 +125,59 @@ func TestRunCLI_NoOverwriteFails(t *testing.T) {
 		t.Fatalf("expected error when overwrite=false and output exists")
 	}
 }
+
+// makePlainJSONLog creates an uncompressed JSON log file (as Cloudflare sometimes provides)
+func makePlainJSONLog(t *testing.T, payload []byte, contentType string) []byte {
+	t.Helper()
+
+	entry := struct {
+		Payload string            `json:"Payload"`
+		Headers map[string]string `json:"Headers"`
+	}{
+		Payload: base64.StdEncoding.EncodeToString(payload),
+		Headers: map[string]string{"content-type": contentType},
+	}
+
+	logJSON, err := json.Marshal(entry)
+	if err != nil {
+		t.Fatalf("failed to marshal entry: %v", err)
+	}
+
+	return logJSON
+}
+
+func TestRunCLI_PlainJSONInput_WritesFiles(t *testing.T) {
+	tmp := t.TempDir()
+
+	payload := []byte("hello-from-json-input")
+	data := makePlainJSONLog(t, payload, "text/plain")
+
+	inPath := filepath.Join(tmp, "20260407T141820Z_abc123.json")
+	if err := os.WriteFile(inPath, data, 0644); err != nil {
+		t.Fatalf("failed to write input file: %v", err)
+	}
+
+	outPath := filepath.Join(tmp, "out.payload.txt")
+
+	if err := runCLI(inPath, outPath, false, true, false); err != nil {
+		t.Fatalf("runCLI with plain JSON input failed: %v", err)
+	}
+
+	// Check payload file exists and has correct content
+	if _, err := os.Stat(outPath); err != nil {
+		t.Fatalf("expected payload file at %s, missing: %v", outPath, err)
+	}
+	content, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output file: %v", err)
+	}
+	if string(content) != string(payload) {
+		t.Errorf("expected payload %q, got %q", string(payload), string(content))
+	}
+
+	// Check log JSON file exists
+	logPath := filepath.Join(tmp, "20260407T141820Z_abc123.log.json")
+	if _, err := os.Stat(logPath); err != nil {
+		t.Fatalf("expected log JSON at %s, missing: %v", logPath, err)
+	}
+}

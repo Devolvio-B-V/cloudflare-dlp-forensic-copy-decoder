@@ -135,8 +135,8 @@ func (fb *FileBrowser) Enter() (string, bool, error) {
 		return "", false, nil
 	}
 
-	// File selected - return it if it's a .log.gz file
-	if strings.HasSuffix(selected.Name, ".log.gz") {
+	// File selected - return it if it's a supported forensic copy file
+	if strings.HasSuffix(selected.Name, ".log.gz") || strings.HasSuffix(selected.Name, ".json") {
 		return selected.Path, true, nil
 	}
 
