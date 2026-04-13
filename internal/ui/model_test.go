@@ -146,3 +146,51 @@ func TestPreview_ViewportCommands_NoPanic(t *testing.T) {
 		_ = mm.(Model)
 	}
 }
+
+func TestPreview_MultiPayload_Navigation(t *testing.T) {
+	res1 := &decoder.DecodeResult{Payload: []byte("payload-one"), IsText: true}
+	res2 := &decoder.DecodeResult{Payload: []byte("payload-two"), IsText: true}
+	res3 := &decoder.DecodeResult{Payload: []byte("payload-three"), IsText: true}
+
+	m := Model{
+		mode:             ModePreview,
+		results:          []*decoder.DecodeResult{res1, res2, res3},
+		currentResultIdx: 0,
+		result:           res1,
+		viewport:         viewport.Model{},
+	}
+
+	// Navigate forward with 'n'
+	mm, _ := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	m = mm.(Model)
+	if m.currentResultIdx != 1 {
+		t.Fatalf("expected currentResultIdx 1 after 'n', got %d", m.currentResultIdx)
+	}
+	if string(m.result.Payload) != "payload-two" {
+		t.Fatalf("expected payload-two, got %q", string(m.result.Payload))
+	}
+
+	// Navigate forward again
+	mm, _ = m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	m = mm.(Model)
+	if m.currentResultIdx != 2 {
+		t.Fatalf("expected currentResultIdx 2, got %d", m.currentResultIdx)
+	}
+
+	// Should not go past the last result
+	mm, _ = m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	m = mm.(Model)
+	if m.currentResultIdx != 2 {
+		t.Fatalf("expected currentResultIdx to stay at 2, got %d", m.currentResultIdx)
+	}
+
+	// Navigate backward with 'p'
+	mm, _ = m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("p")})
+	m = mm.(Model)
+	if m.currentResultIdx != 1 {
+		t.Fatalf("expected currentResultIdx 1 after 'p', got %d", m.currentResultIdx)
+	}
+	if string(m.result.Payload) != "payload-two" {
+		t.Fatalf("expected payload-two, got %q", string(m.result.Payload))
+	}
+}
