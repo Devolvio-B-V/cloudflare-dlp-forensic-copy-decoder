@@ -12,7 +12,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const version = "2.1.0"
+const version = "2.2.0"
 
 // boolFlags contains all boolean flags that don't take a value
 var boolFlags = map[string]bool{

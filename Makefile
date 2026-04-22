@@ -16,7 +16,7 @@ GOVET=$(GOCMD) vet
 GOFMT=$(GOCMD) fmt
 
 # Version
-VERSION?=2.1.0
+VERSION?=2.2.0
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
 # Platforms for cross-compilation

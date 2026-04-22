@@ -26,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
 
 - OS: [e.g. Linux, macOS, Windows]
 - Go version: [e.g. 1.21.0]
-- Tool version: [e.g. 2.1.0]
+- Tool version: [e.g. 2.2.0]
 
 **🧥 Additional context**
 Add any other context about the problem here.
