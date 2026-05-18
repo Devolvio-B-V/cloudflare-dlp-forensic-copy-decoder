@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"os"
 	"testing"
 
@@ -91,5 +92,37 @@ func TestModel_Update_WindowSizeAndDecodeMsg(t *testing.T) {
 	mm2 := m2Iface.(Model)
 	if mm2.mode != ModePreview {
 		t.Fatalf("expected ModePreview, got %v", mm2.mode)
+	}
+}
+
+func TestHandleKeyPress_ErrorRetryWithTryText_Succeeds(t *testing.T) {
+	data := makeGzippedLogBytes(t, []byte("hello-retry"), "application/octet-stream", false)
+	tmp := t.TempDir()
+	inPath := tmp + "/input.log.gz"
+	if err := os.WriteFile(inPath, data, 0644); err != nil {
+		t.Fatalf("write input: %v", err)
+	}
+
+	m := Model{
+		mode:      ModeError,
+		inputPath: inPath,
+		err:       errors.New("content-type not supported (got: application/octet-stream). Use --try-text to force text decode"),
+	}
+
+	updated, cmd := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("t")})
+	mm := updated.(Model)
+	if mm.mode != ModeDecoding {
+		t.Fatalf("expected mode %v after retry, got %v", ModeDecoding, mm.mode)
+	}
+	if !mm.tryText {
+		t.Fatalf("expected tryText to be enabled after pressing 't'")
+	}
+	if cmd == nil {
+		t.Fatalf("expected decode command on retry")
+	}
+
+	msg := cmd()
+	if _, ok := msg.(decodeSuccessMsg); !ok {
+		t.Fatalf("expected decodeSuccessMsg after retry, got %T", msg)
 	}
 }

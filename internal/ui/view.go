@@ -267,7 +267,11 @@ func (m Model) viewError() string {
 	b.WriteString(errMsg)
 	b.WriteString("\n\n")
 
-	b.WriteString(helpStyle.Render("Press [b] to go back to file browser, [q] to quit"))
+	helpText := "Press [b] to go back to file browser, [q] to quit"
+	if m.canRetryWithTryText() {
+		helpText = "Press [t] to retry with text decode, [b] to go back to file browser, [q] to quit"
+	}
+	b.WriteString(helpStyle.Render(helpText))
 	b.WriteString("\n")
 
 	return b.String()

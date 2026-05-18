@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/internal/decoder"
@@ -64,5 +65,18 @@ func TestViewPreviewExportError_Renders(t *testing.T) {
 	m.err = errors.New("boom")
 	if out := m.viewError(); out == "" {
 		t.Fatalf("expected error view output")
+	}
+}
+
+func TestViewError_ShowsTryTextRetryHelp(t *testing.T) {
+	m := Model{
+		mode:  ModeError,
+		width: 80,
+		err:   errors.New("content-type not supported (got: application/octet-stream). Use --try-text to force text decode"),
+	}
+
+	out := m.viewError()
+	if !strings.Contains(out, "[t]") {
+		t.Fatalf("expected retry hint in error view, got: %q", out)
 	}
 }
