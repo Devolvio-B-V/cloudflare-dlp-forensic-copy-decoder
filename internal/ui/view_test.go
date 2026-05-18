@@ -2,6 +2,7 @@ package ui
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,7 +73,7 @@ func TestViewError_ShowsTryTextRetryHelp(t *testing.T) {
 	m := Model{
 		mode:  ModeError,
 		width: 80,
-		err:   errors.New("content-type not supported (got: application/octet-stream). Use --try-text to force text decode"),
+		err:   fmt.Errorf("%w (got: application/octet-stream). Use --try-text to force text decode", decoder.ErrUnsupportedContentType),
 	}
 
 	out := m.viewError()

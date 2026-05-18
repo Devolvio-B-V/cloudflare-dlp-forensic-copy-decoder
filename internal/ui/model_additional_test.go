@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"os"
 	"testing"
 
@@ -106,7 +105,7 @@ func TestHandleKeyPress_ErrorRetryWithTryText_Succeeds(t *testing.T) {
 	m := Model{
 		mode:      ModeError,
 		inputPath: inPath,
-		err:       errors.New("content-type not supported (got: application/octet-stream). Use --try-text to force text decode"),
+		err:       decoder.ErrUnsupportedContentType,
 	}
 
 	updated, cmd := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("t")})

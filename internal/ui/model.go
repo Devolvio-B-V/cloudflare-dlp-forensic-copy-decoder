@@ -2,8 +2,8 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/internal/decoder"
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/pkg/utils"
@@ -346,7 +346,7 @@ func (m Model) canRetryWithTryText() bool {
 	if m.err == nil || m.tryText {
 		return false
 	}
-	return strings.Contains(m.err.Error(), "content-type not supported")
+	return errors.Is(m.err, decoder.ErrUnsupportedContentType)
 }
 
 func (m Model) exportFile() tea.Cmd {

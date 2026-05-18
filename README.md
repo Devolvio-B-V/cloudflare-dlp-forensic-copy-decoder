@@ -117,8 +117,6 @@ Provide a filename (positional argument or `--input`) to run the tool in non-int
 
 *Error Mode:*
 - `t` - Retry decode with forced text mode (when content-type is unsupported)
-- `b` - Back to file browser
-- `q` - Quit
 
 ### Non-Interactive CLI Mode
 
