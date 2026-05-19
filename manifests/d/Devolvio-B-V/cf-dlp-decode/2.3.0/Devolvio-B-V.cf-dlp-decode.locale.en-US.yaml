@@ -40,7 +40,10 @@ Tags:
   - forensic
   - bubbletea
   - cloudflare-zero-trust
-ReleaseNotes: Support --try-text functionality in TUI.
+
+# Winget-Create seems to remove this.
+# ReleaseNotes: Support --try-text functionality in TUI.
+
 ReleaseNotesUrl: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/releases/tag/v2.3.0
 InstallationNotes: https://github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/blob/v2.3.0/README.md#-usage
 Documentations:
