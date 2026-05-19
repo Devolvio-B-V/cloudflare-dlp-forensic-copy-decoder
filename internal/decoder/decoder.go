@@ -4,14 +4,15 @@
 package decoder
 
 import (
-"bytes"
-"compress/gzip"
-"compress/zlib"
-"encoding/base64"
-"encoding/json"
-"fmt"
-"io"
-"strings"
+	"bytes"
+	"compress/gzip"
+	"compress/zlib"
+	"encoding/base64"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
 )
 
 // Compression magic numbers
@@ -21,7 +22,12 @@ gzipMagic2  = 0x8b
 zlibMagic1  = 0x78
 zlibMagic2a = 0x01
 zlibMagic2b = 0x9c
-zlibMagic2c = 0xda
+	zlibMagic2c = 0xda
+)
+
+var (
+	// ErrUnsupportedContentType indicates payload decoding failed due to an unsupported content-type.
+	ErrUnsupportedContentType = errors.New("content-type not supported")
 )
 
 // LogEntry represents the structure of a DLP forensic log file
@@ -213,13 +219,13 @@ result.Payload = payloadBytes
 // Catch-all for any text/* content type
 result.IsText = true
 result.Payload = payloadBytes
-} else if opts.TryText {
-// Try text decode with --try-text flag
-result.IsText = true
-result.Payload = payloadBytes
-} else {
-return nil, fmt.Errorf("content-type not supported (got: %s). Use --try-text to force text decode", contentType)
-}
+	} else if opts.TryText {
+		// Try text decode with --try-text flag
+		result.IsText = true
+		result.Payload = payloadBytes
+	} else {
+		return nil, fmt.Errorf("%w (got: %s). Use --try-text to force text decode", ErrUnsupportedContentType, contentType)
+	}
 
 return result, nil
 }

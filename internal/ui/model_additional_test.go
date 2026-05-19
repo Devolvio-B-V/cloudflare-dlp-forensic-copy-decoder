@@ -93,3 +93,35 @@ func TestModel_Update_WindowSizeAndDecodeMsg(t *testing.T) {
 		t.Fatalf("expected ModePreview, got %v", mm2.mode)
 	}
 }
+
+func TestHandleKeyPress_ErrorRetryWithTryText_Succeeds(t *testing.T) {
+	data := makeGzippedLogBytes(t, []byte("hello-retry"), "application/octet-stream", false)
+	tmp := t.TempDir()
+	inPath := tmp + "/input.log.gz"
+	if err := os.WriteFile(inPath, data, 0644); err != nil {
+		t.Fatalf("write input: %v", err)
+	}
+
+	m := Model{
+		mode:      ModeError,
+		inputPath: inPath,
+		err:       decoder.ErrUnsupportedContentType,
+	}
+
+	updated, cmd := m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("t")})
+	mm := updated.(Model)
+	if mm.mode != ModeDecoding {
+		t.Fatalf("expected mode %v after retry, got %v", ModeDecoding, mm.mode)
+	}
+	if !mm.tryText {
+		t.Fatalf("expected tryText to be enabled after pressing 't'")
+	}
+	if cmd == nil {
+		t.Fatalf("expected decode command on retry")
+	}
+
+	msg := cmd()
+	if _, ok := msg.(decodeSuccessMsg); !ok {
+		t.Fatalf("expected decodeSuccessMsg after retry, got %T", msg)
+	}
+}

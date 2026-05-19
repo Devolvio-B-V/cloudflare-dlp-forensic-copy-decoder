@@ -2,6 +2,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Devolvio-B-V/cloudflare-dlp-forensic-copy-decoder/internal/decoder"
@@ -42,6 +43,7 @@ type Model struct {
 	fileBrowser      *FileBrowser
 	viewport         viewport.Model
 	ready            bool
+	tryText          bool
 }
 
 // NewModel creates a new TUI model
@@ -114,6 +116,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.currentResultIdx = 0
 		m.result = m.results[0]
 		m.mode = ModePreview
+		m.tryText = false
 		if len(m.results) == 1 {
 			m.statusMessage = "Decoded successfully"
 		} else {
@@ -185,6 +188,7 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 					// File selected, start decoding
 					m.inputPath = path
 					m.mode = ModeDecoding
+					m.tryText = false
 					return m, m.decode()
 				}
 			}
@@ -281,7 +285,15 @@ func (m Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.err = nil
 			m.results = nil
 			m.result = nil
+			m.tryText = false
 			m.statusMessage = "Select a file to decode"
+		case "t":
+			if m.canRetryWithTryText() {
+				m.mode = ModeDecoding
+				m.tryText = true
+				m.statusMessage = "Retrying decode in text mode..."
+				return m, m.decode()
+			}
 		}
 	}
 
@@ -318,7 +330,7 @@ func (m Model) decode() tea.Cmd {
 
 		// Decode the file (supports single and multi-payload files)
 		opts := decoder.DecodeOptions{
-			TryText: false,
+			TryText: m.tryText,
 			Verbose: true,
 		}
 		results, err := decoder.DecodeLogFileMulti(reader, opts)
@@ -328,6 +340,13 @@ func (m Model) decode() tea.Cmd {
 
 		return decodeSuccessMsg{results: results}
 	}
+}
+
+func (m Model) canRetryWithTryText() bool {
+	if m.err == nil || m.tryText {
+		return false
+	}
+	return errors.Is(m.err, decoder.ErrUnsupportedContentType)
 }
 
 func (m Model) exportFile() tea.Cmd {

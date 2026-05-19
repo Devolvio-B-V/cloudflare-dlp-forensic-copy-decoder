@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 )
@@ -184,6 +185,9 @@ func TestDecodeLogFile_UnsupportedContentType(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "content-type not supported") {
 		t.Errorf("Expected content-type error, got: %v", err)
+	}
+	if !errors.Is(err, ErrUnsupportedContentType) {
+		t.Errorf("expected unsupported content type sentinel error, got: %v", err)
 	}
 }
 
