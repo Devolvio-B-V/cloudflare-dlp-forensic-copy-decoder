@@ -54,6 +54,12 @@ jobs:
     needs: release
     runs-on: windows-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    
+    # GitHub token permissions needed for winget-create to submit a PR
+    permissions:
+      contents: read
+      pull-requests: write
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
